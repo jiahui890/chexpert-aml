@@ -18,13 +18,15 @@ class BatchLoader:
             raise StopIteration
         start = self.start
         end = min(start + self.batch_size, self.data_size)
+        all_features = []
         image_features = []
         all_labels = []
         for i in range(start, end):
-            image_feature, labels = self.dataset[i]
+            features, image_feature, labels = self.dataset[i]
+            all_features.append(features)
             image_features.append(image_feature)
             all_labels.append(labels)
-        X = pd.DataFrame(image_features)
+        X = pd.concat([pd.DataFrame(all_features), pd.DataFrame(image_features)], axis=1)
         y = pd.DataFrame(all_labels, columns=self.dataset._label_header)
         if self.return_labels:
             y = y[self.return_labels]

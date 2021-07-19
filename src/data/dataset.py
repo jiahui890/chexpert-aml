@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 from torch.utils.data import Dataset
 from src.data.batchloader import BatchLoader
 import os
@@ -28,63 +29,28 @@ class ImageDataset(Dataset):
                      ('flatten', {})
                  ],
                  limit = None):
-        self._label_header = None
-        self._image_paths = []
-        self._labels = []
+        self.image_path_base = image_path_base
         self.imgproc = get_proc_class(proc_module)
         self.transformations = transformations
         self.limit = limit
-        # Uncertainty Approaches
-        self.dict = [
-            # U-Zero
-            {
-                '1.0': '1',
-                '': '0',
-                '0.0': '0',
-                '-1.0': '0'
-            },
-            # U-One
-            {
-                '1.0': '1',
-                '': '0',
-                '0.0': '0',
-                '-1.0': '1'
-            },
-        ]
-        with open(label_csv_path) as f:
-            header = f.readline().strip('\n').split(',')
-            self._label_header = [
-                header[7], header[10], header[11], header[13], header[15]
-            ]
-            line_count = 0
-            for line in f:
-                if self.limit and line_count >= self.limit:
-                    break
-                labels = []
-                fields = line.strip('\n').split(',')
-                image_path = fields[0]
-                if not os.path.isabs(image_path):
-                    image_path = os.path.join(image_path_base, image_path)
-                for index, value in enumerate(fields[5:]):
-                    if index == 5 or index == 8:
-                        labels.append(self.dict[1].get(value))
-                    elif index == 2 or index == 6 or index == 10:
-                        labels.append(self.dict[0].get(value))
-                labels = list(map(int, labels))
-                self._image_paths.append(image_path)
-                assert os.path.exists(image_path), image_path
-                self._labels.append(labels)
-                line_count += 1
-        self._num_image = len(self._image_paths)
+        self.df = pd.read_csv(label_csv_path)
+        self._feature_header = self.df.columns[1:5]
+        self._label_header = self.df.columns[5::]
+        self.df = self.df[self.df['Sex'] != 'Unknown']
+        if limit is not None:
+            self.df = self.df.sample(n=limit)
+        self.df.reset_index(drop=True)
+        self._num_image = len(self.df)
 
     def __len__(self):
         return self._num_image
 
     def __getitem__(self, idx):
-        image = self.imgproc.imread(self._image_paths[idx])
+        image = self.imgproc.imread(self.df['Path'].iloc[idx])
         transformed = self.imgproc.transform(image, self.transformations)
-        labels = np.array(self._labels[idx]).astype(np.float32)
-        return (transformed, labels)
+        features = self.df[self._feature_header].iloc[idx].values
+        labels = self.df[self._label_header ].iloc[idx].values
+        return (features, transformed, labels)
 
     
     def batchloader(self, batch_size, return_labels=None):
@@ -109,3 +75,55 @@ class ImageDataset(Dataset):
             X, y: Pandas DataFrame
         """
         return next(iter(BatchLoader(self, self._num_image, return_labels)))
+
+    def clean(self):
+        """"Perform basic data cleaning
+        """
+        self.df['Path'] = self.df['Path'].apply(lambda x: x.replace('CheXpert-v1.0-small', self.image_path_base))
+        self.df['Frontal/Lateral'] = self.df['Frontal/Lateral'].map({'Frontal':1, 'Lateral':0})
+        self.df['Sex'] = self.df['Sex'].map({'Male':1, 'Female':0})
+        self.df['AP/PA'] = self.df['AP/PA'].replace(np.nan, 'AP')
+        self.df['AP/PA'] = self.df['AP/PA'].map({'AP':1, 'PA':0})
+        self.df.reset_index(drop=True)
+        self._num_image = len(self.df)
+
+    def map_uncertain(self, option=None, columns=None):
+        """"Map the uncertain label of -1 to [0,1] depending on mapping option, replace np.nan with 0.
+
+        Args:
+            option : List of options 'U-zero', 'U-one' and 'Random'
+            columns: List of columns to map
+        """
+        map_dict = {
+            'U-zero':
+            {
+                1.0: 1,
+                '': 0,
+                0.0: 0,
+                -1.0: 0
+            },
+            'U-one':
+            {
+                1.0: 1,
+                '': 0,
+                0.0: 0,
+                -1.0: 1
+            }
+        }
+
+        #Replace np.nan with 0
+        if columns == None:
+            columns = self._label_header
+        self.df[columns] = self.df[columns].replace(np.nan, 0)
+
+        if option == 'U-zero' or option == 'U-one':
+            for col in columns:
+                self.df[col] = self.df[col].map(map_dict[option])
+        elif option == 'Random':
+            for col in columns:
+                sum_positive = (self.df[col] == 1.0).sum()
+                sum_negative = (self.df[col] == 0.0).sum()
+                prob_positive = sum_positive / (sum_positive + sum_negative)
+                list_size = self.df[self.df[col] == -1.0][col].size
+                random_list = np.random.choice(a=[0, 1], p=[1 - prob_positive, prob_positive], size=list_size)
+                self.df.loc[self.df[col] == -1.0, col] = random_list
