@@ -39,7 +39,6 @@ if __name__ == '__main__':
     model_path = os.path.join(base_path, "models")
     results_path = os.path.join(base_path, "reports", "figures")
     limit = args.limit
-    limit = 512
     batch_size = args.batchsize
     return_labels = args.ylabels
     train_dataset = ImageDataset(label_csv_path=train_csv_path, image_path_base=image_path, limit=limit)
