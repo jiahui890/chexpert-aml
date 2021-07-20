@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 
 class BatchLoader:
-    def __init__(self, dataset, batch_size, return_labels='all'):
+    def __init__(self, dataset, batch_size, return_labels=None):
         self.dataset = dataset
         self.batch_size = batch_size
         self.return_labels = return_labels
