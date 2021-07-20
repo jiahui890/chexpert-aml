@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 from torch.utils import data
 from src.data.dataset import ImageDataset
 from sklearn.decomposition import IncrementalPCA
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from sklearn.svm import SVC
 from sklearn.linear_model import SGDClassifier
 from sklearn.naive_bayes import MultinomialNB
@@ -56,10 +56,15 @@ if __name__ == '__main__':
     # TODO: Setup your own model here
     if args.pca:
         print(f'Setting up pca')
-        pca = IncrementalPCA(n_components=50, whiten=True, batch_size=batch_size)
+        pca = IncrementalPCA(n_components=30, whiten=True, batch_size=batch_size)
         for i, (x_features, x_image, y) in enumerate(train_dataset.batchloader(batch_size, return_labels)):
             print(f'Training pca on batch {(i + 1)} out of {num_batch}')
             pca.partial_fit(x_image)
+
+        print(f'Saving pca model .sav file... ')
+        f_datetime = dt.datetime.now().strftime('%H%M_%d%m%Y')
+        pca_fname = os.path.join(model_path, f'{pca}_{batch_size}_{args.map}_{f_datetime}.sav')
+        pickle.dump(pca, open(pca_fname, 'wb'))
 
     base_model = MultinomialNB()
     print(f'model: {base_model}')
@@ -73,17 +78,19 @@ if __name__ == '__main__':
     classes = np.array([[0, 1] for y in return_labels]).astype(np.float32)
     for i, (x_features, x_image, y) in enumerate(train_dataset.batchloader(batch_size, return_labels)):
         if args.pca:
-            X = pd.concat([pd.DataFrame(x_features), pd.DataFrame(pca.transform(x_image))], axis=1)
-        else:
-            X = pd.concat([pd.DataFrame(x_features), pd.DataFrame(x_image)], axis=1)
+            x_image = MinMaxScaler().fit_transform(pca.transform(x_image))
+        X = pd.concat([pd.DataFrame(x_features), pd.DataFrame(x_image)], axis=1)
         print(f'Training model on batch {(i + 1)} out of {num_batch}')
         model.partial_fit(X, y, classes=classes)
 
     print(f'Saving model .sav file... ')
-    model_fname = os.path.join(model_path, f'{args.file}_{dt.datetime.now().strftime("%H%M_%d%m%Y")}.sav')
+    f_datetime = dt.datetime.now().strftime('%H%M_%d%m%Y')
+    model_fname = os.path.join(model_path, f'{args.file}_{batch_size}_{args.map}_{f_datetime}.sav')
     pickle.dump(model, open(model_fname, 'wb'))
     print(f'Running model on test dataset...')
     x_features_test, x_image_test, y_test_multi = test_dataset.load(return_labels)
+    if args.pca:
+        x_image_test = MinMaxScaler().fit_transform(pca.transform(x_image_test))
     X_test = pd.concat([pd.DataFrame(x_features_test), pd.DataFrame(x_image_test)], axis=1)
     y_pred_multi = np.array(model.predict_proba(X_test))
     y_pred_labels = np.array(model.predict(X_test))
@@ -106,12 +113,14 @@ if __name__ == '__main__':
         ax.set_title(f"ROC curve for {label}")
         ax.set_xlabel("False Positive Rate")
         ax.set_ylabel("True Positive Rate")
-        f_datetime = dt.datetime.now().strftime('%H%M_%d%m%Y')
-        fig_fname = os.path.join(results_path, f"{args.file}_{label}_{f_datetime}.png")
-        text_fname = os.path.join(results_path, f"{args.file}_{label}_{f_datetime}.txt")
+        fig_fname = os.path.join(results_path, f"{args.file}_{batch_size}_{args.map}_{label}_{f_datetime}.png")
+        text_fname = os.path.join(results_path, f"{args.file}_{batch_size}_{args.map}_{label}_{f_datetime}.txt")
         f = open(text_fname, "w")
         fig.savefig(fig_fname, dpi=72)
         fig.clear()
+        if args.pca:
+            print(f'PCA components: {pca.n_components}')
+            f.write(f'PCA components: {pca.n_components}')
         print(f'{label}')
         print(f'roc_auc_score: {auc}')
         print(f'accuracy: {accuracy}')
