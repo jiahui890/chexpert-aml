@@ -33,7 +33,7 @@ class SKImageProcessing(imgproc.ImageProcessing):
         return image[top:bottom, left:right]
 
     # Normalize
-    def normalize(image):
+    def normalize(self, image):
         # convert from integers to floats
         image_norm = image.astype('float32')
         # normalize to range -1 to 1
