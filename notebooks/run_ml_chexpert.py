@@ -1,5 +1,6 @@
 import os
-import warnings
+import sys
+sys.path.append('..')
 import argparse
 import datetime as dt
 import pickle
@@ -19,6 +20,7 @@ from sklearn.metrics import roc_auc_score, roc_curve, f1_score, accuracy_score
 
 if __name__ == '__main__':
 
+    default_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
     parser = argparse.ArgumentParser()
     #TODO: Add argparse for image transformation
     parser.add_argument("--pca", type=bool, default=False)
@@ -26,7 +28,7 @@ if __name__ == '__main__':
     parser.add_argument("--map", type=str, default='Random', choices=['U-zero', 'U-one', 'Random'])
     parser.add_argument("--batchsize", type=int, default=32)
     parser.add_argument("--limit", type=int, default=None)
-    parser.add_argument("--path", type=str, default=r"C:\Users\songh\Google Drive\ISS610\chexpert-aml")
+    parser.add_argument("--path", type=str, default=default_dir)
     parser.add_argument("--ylabels", nargs='+', default=['Atelectasis', 'Cardiomegaly', 'Consolidation', 'Edema',
                         'Pleural Effusion'])
 
