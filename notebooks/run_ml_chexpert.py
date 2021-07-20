@@ -58,7 +58,7 @@ if __name__ == '__main__':
     print(f'test_dataset: {test_dataset}, {test_csv_path}')
     print(f'==============================================')
 
-    num_batch = train_dataset._num_image // batch_size
+    num_batch = train_dataset._num_image // batch_size + bool(train_dataset._num_image // batch_size) #ceiling division
 
     # TODO: Setup your own model here
     if args.pca:
