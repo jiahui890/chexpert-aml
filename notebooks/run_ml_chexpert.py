@@ -42,11 +42,9 @@ if __name__ == '__main__':
     limit = args.limit
     batch_size = args.batchsize
     return_labels = args.ylabels
-    train_dataset = ImageDataset(label_csv_path=train_csv_path, image_path_base=image_path, limit=limit)
-    train_dataset.clean()
+    train_dataset = ImageDataset(label_csv_path=train_csv_path, image_path_base=image_path, limit=limit,
+                                 map_option=args.map)
     test_dataset = ImageDataset(label_csv_path=test_csv_path, image_path_base=image_path)
-    test_dataset.clean()
-    train_dataset.map_uncertain(option=args.map)
     print(f'train_dataset: {train_dataset}, {train_csv_path}')
     print(f'test_dataset: {test_dataset}, {test_csv_path}')
     print(f'==============================================')
@@ -56,7 +54,7 @@ if __name__ == '__main__':
     # TODO: Setup your own model here
     if args.pca:
         print(f'Setting up pca')
-        pca = IncrementalPCA(n_components=30, whiten=True, batch_size=batch_size)
+        pca = IncrementalPCA(n_components=50, whiten=True, batch_size=batch_size)
         for i, (x_features, x_image, y) in enumerate(train_dataset.batchloader(batch_size, return_labels)):
             print(f'Training pca on batch {(i + 1)} out of {num_batch}')
             pca.partial_fit(x_image)
@@ -120,7 +118,7 @@ if __name__ == '__main__':
         fig.clear()
         if args.pca:
             print(f'PCA components: {pca.n_components}')
-            f.write(f'PCA components: {pca.n_components}')
+            f.write(f'PCA components: {pca.n_components}\n')
         print(f'{label}')
         print(f'roc_auc_score: {auc}')
         print(f'accuracy: {accuracy}')
