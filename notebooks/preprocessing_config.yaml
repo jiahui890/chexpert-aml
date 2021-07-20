@@ -1,0 +1,4 @@
+transformations:
+  - [crop, {size: [320,320]}]
+  - [eqhist,{}]
+  - [gaussian_blur,{}]

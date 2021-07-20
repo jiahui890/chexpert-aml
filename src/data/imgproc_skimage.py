@@ -33,7 +33,7 @@ class SKImageProcessing(imgproc.ImageProcessing):
         return image[top:bottom, left:right]
 
     # Normalize
-    def normalize(image):
+    def normalize(self, image):
         # convert from integers to floats
         image_norm = image.astype('float32')
         # normalize to range -1 to 1
@@ -44,11 +44,11 @@ class SKImageProcessing(imgproc.ImageProcessing):
     def eqhist(self, image):
         return exposure.equalize_hist(image) 
     
-    def adaptive_eqhist(self, image):
-        return exposure.equalize_adapthist(image, clip_limit=0.03)
+    def adaptive_eqhist(self, image, kernel_size=None, clip_limit=0.03):
+        return exposure.equalize_adapthist(image, clip_limit=clip_limit)
     
-    def gaussian_blur(self, image):
-        return gaussian(image, sigma=3, truncate=3)
+    def gaussian_blur(self, image, sigma=3, truncate=3):
+        return gaussian(image, sigma=sigma, truncate=truncate)
     
     def median_blur(self, image):
         return median(image)

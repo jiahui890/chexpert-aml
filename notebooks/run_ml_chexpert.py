@@ -4,6 +4,7 @@ sys.path.append('..')
 import argparse
 import datetime as dt
 import pickle
+import yaml
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -24,6 +25,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     #TODO: Add argparse for image transformation
     parser.add_argument("--pca", type=bool, default=False)
+    parser.add_argument("--preprocessing", type=str, default="notebooks/preprocessing_config.yaml")
     parser.add_argument("--file", type=str, default='chexpert')
     parser.add_argument("--map", type=str, default='Random', choices=['U-zero', 'U-one', 'Random'])
     parser.add_argument("--batchsize", type=int, default=32)
@@ -36,6 +38,7 @@ if __name__ == '__main__':
     print(f'==============================================')
     print('Loading dataset')
     base_path = args.path
+    preprocessing_path = os.path.join(base_path,args.preprocessing)
     image_path = os.path.join(base_path, "data", "raw")
     train_csv_path = os.path.join(base_path, "data", "raw", "CheXpert-v1.0-small", "train.csv")
     test_csv_path = os.path.join(base_path, "data", "raw", "CheXpert-v1.0-small", "valid.csv")
@@ -44,9 +47,13 @@ if __name__ == '__main__':
     limit = args.limit
     batch_size = args.batchsize
     return_labels = args.ylabels
+
+    with open(preprocessing_path,'r') as file:
+        preprocessing_config = yaml.full_load(file)
+
     train_dataset = ImageDataset(label_csv_path=train_csv_path, image_path_base=image_path, limit=limit,
-                                 map_option=args.map)
-    test_dataset = ImageDataset(label_csv_path=test_csv_path, image_path_base=image_path)
+                                 transformations=preprocessing_config["transformations"], map_option=args.map)
+    test_dataset = ImageDataset(label_csv_path=test_csv_path, image_path_base=image_path, transformations=preprocessing_config["transformations"])
     print(f'train_dataset: {train_dataset}, {train_csv_path}')
     print(f'test_dataset: {test_dataset}, {test_csv_path}')
     print(f'==============================================')
