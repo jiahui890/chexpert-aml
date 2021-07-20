@@ -84,6 +84,7 @@ class ImageDataset(Dataset):
         self.df['Sex'] = self.df['Sex'].map({'Male':1, 'Female':0})
         self.df['AP/PA'] = self.df['AP/PA'].replace(np.nan, 'AP')
         self.df['AP/PA'] = self.df['AP/PA'].map({'AP':1, 'PA':0})
+        self.df['AP/PA'] = self.df['AP/PA'].replace(np.nan, 1)
         self.df.reset_index(drop=True)
         self._num_image = len(self.df)
 

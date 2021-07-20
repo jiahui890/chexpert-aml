@@ -1,4 +1,4 @@
-from src.data import imageproc
+from src.data import imgproc
 import numpy as np
 
 
@@ -9,7 +9,7 @@ from skimage.transform import resize as skresize
 from skimage.filters import gaussian, laplace, median
 from skimage import exposure
 
-class SKImageProcessing(imageproc.ImageProcessing):
+class SKImageProcessing(imgproc.ImageProcessing):
 
     def imread(self, path):
         return skimread(path)

@@ -26,9 +26,10 @@ class BatchLoader:
             all_features.append(features)
             image_features.append(image_feature)
             all_labels.append(labels)
-        X = pd.concat([pd.DataFrame(all_features), pd.DataFrame(image_features)], axis=1)
+        x_features, x_image = pd.DataFrame(all_features), pd.DataFrame(image_features)
         y = pd.DataFrame(all_labels, columns=self.dataset._label_header)
         if self.return_labels:
             y = y[self.return_labels]
         self.start = end
-        return X, y
+        return x_features, x_image, y
+

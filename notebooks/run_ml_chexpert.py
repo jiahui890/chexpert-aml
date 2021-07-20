@@ -15,18 +15,19 @@ from sklearn.linear_model import SGDClassifier
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.pipeline import make_pipeline
 from sklearn.multioutput import MultiOutputClassifier
-from sklearn.metrics import roc_auc_score, roc_curve
+from sklearn.metrics import roc_auc_score, roc_curve, f1_score, accuracy_score
 
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     #TODO: Add argparse for image transformation
-    parser.add_argument("-f", "--file", type=str, default='chexpert')
-    parser.add_argument("-m", "--map", type=str, default='Random', choices=['U-zero', 'U-one', 'Random'])
-    parser.add_argument("-b", "--batchsize", type=int, default=32)
-    parser.add_argument("-l", "--limit", type=int, default=None)
-    parser.add_argument("-p", "--path", type=str, default=r"C:\Users\songh\Google Drive\ISS610\chexpert-aml")
-    parser.add_argument("-y", "--ylabels", nargs='+', default=['Atelectasis', 'Cardiomegaly', 'Consolidation', 'Edema',
+    parser.add_argument("--pca", type=bool, default=False)
+    parser.add_argument("--file", type=str, default='chexpert')
+    parser.add_argument("--map", type=str, default='Random', choices=['U-zero', 'U-one', 'Random'])
+    parser.add_argument("--batchsize", type=int, default=32)
+    parser.add_argument("--limit", type=int, default=None)
+    parser.add_argument("--path", type=str, default=r"C:\Users\songh\Google Drive\ISS610\chexpert-aml")
+    parser.add_argument("--ylabels", nargs='+', default=['Atelectasis', 'Cardiomegaly', 'Consolidation', 'Edema',
                         'Pleural Effusion'])
 
     args = parser.parse_args()
@@ -46,13 +47,20 @@ if __name__ == '__main__':
     test_dataset = ImageDataset(label_csv_path=test_csv_path, image_path_base=image_path)
     test_dataset.clean()
     train_dataset.map_uncertain(option=args.map)
-
     print(f'train_dataset: {train_dataset}, {train_csv_path}')
     print(f'test_dataset: {test_dataset}, {test_csv_path}')
     print(f'==============================================')
 
+    num_batch = train_dataset._num_image // batch_size
+
     # TODO: Setup your own model here
-    #pca = IncrementalPCA(n_components=50, whiten=True)
+    if args.pca:
+        print(f'Setting up pca')
+        pca = IncrementalPCA(n_components=50, whiten=True, batch_size=batch_size)
+        for i, (x_features, x_image, y) in enumerate(train_dataset.batchloader(batch_size, return_labels)):
+            print(f'Training pca on batch {(i + 1)} out of {num_batch}')
+            pca.partial_fit(x_image)
+
     base_model = MultinomialNB()
     print(f'model: {base_model}')
 
@@ -62,25 +70,34 @@ if __name__ == '__main__':
     else:
         model = base_model
 
-    num_batch = train_dataset._num_image // batch_size
-
     classes = np.array([[0, 1] for y in return_labels]).astype(np.float32)
-    for i, (X, y) in enumerate(train_dataset.batchloader(batch_size, return_labels)):
+    for i, (x_features, x_image, y) in enumerate(train_dataset.batchloader(batch_size, return_labels)):
+        if args.pca:
+            X = pd.concat([pd.DataFrame(x_features), pd.DataFrame(pca.transform(x_image))], axis=1)
+        else:
+            X = pd.concat([pd.DataFrame(x_features), pd.DataFrame(x_image)], axis=1)
         print(f'Training model on batch {(i + 1)} out of {num_batch}')
         model.partial_fit(X, y, classes=classes)
+
     print(f'Saving model .sav file... ')
     model_fname = os.path.join(model_path, f'{args.file}_{dt.datetime.now().strftime("%H%M_%d%m%Y")}.sav')
     pickle.dump(model, open(model_fname, 'wb'))
     print(f'Running model on test dataset...')
-    X_test, y_test_multi = test_dataset.load(return_labels)
+    x_features_test, x_image_test, y_test_multi = test_dataset.load(return_labels)
+    X_test = pd.concat([pd.DataFrame(x_features_test), pd.DataFrame(x_image_test)], axis=1)
     y_pred_multi = np.array(model.predict_proba(X_test))
+    y_pred_labels = np.array(model.predict(X_test))
     print(f'==============================================')
     print(f'Verification results')
     print(f'==============================================\n')
+
     for idx, label in enumerate(return_labels):
         y_test = y_test_multi[label]
         y_pred = y_pred_multi[idx, :, 1]
+        y_pred_label = y_pred_labels[:, idx]
         auc = roc_auc_score(y_true=y_test, y_score=y_pred)
+        accuracy = accuracy_score(y_true=y_test, y_pred=y_pred_label)
+        f1 = f1_score(y_true=y_test, y_pred=y_pred_label)
         fpr, tpr, thresholds = roc_curve(y_true=y_test, y_score=y_pred)
         fig = plt.figure(figsize=(5,5))
         ax = fig.add_subplot()
@@ -89,8 +106,17 @@ if __name__ == '__main__':
         ax.set_title(f"ROC curve for {label}")
         ax.set_xlabel("False Positive Rate")
         ax.set_ylabel("True Positive Rate")
-        fig_fname = os.path.join(results_path, f"{args.file}_{label}_{dt.datetime.now().strftime('%H%M_%d%m%Y')}.png")
+        f_datetime = dt.datetime.now().strftime('%H%M_%d%m%Y')
+        fig_fname = os.path.join(results_path, f"{args.file}_{label}_{f_datetime}.png")
+        text_fname = os.path.join(results_path, f"{args.file}_{label}_{f_datetime}.txt")
+        f = open(text_fname, "w")
         fig.savefig(fig_fname, dpi=72)
         fig.clear()
-        print (f'{label}')
+        print(f'{label}')
         print(f'roc_auc_score: {auc}')
+        print(f'accuracy: {accuracy}')
+        print(f'f1-score: {f1}')
+        f.write(f'{label}\n')
+        f.write(f'roc_auc_score: {auc}\n')
+        f.write(f'accuracy: {accuracy}\n')
+        f.write(f'f1-score: {f1}\n')
