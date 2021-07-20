@@ -1,6 +1,5 @@
 import numpy as np
 import pandas as pd
-from torch.utils.data import Dataset
 from src.data.batchloader import BatchLoader
 import os
 
@@ -8,7 +7,7 @@ import os
 from src.data.imgproc import get_proc_class
 
 
-class ImageDataset(Dataset):
+class ImageDataset():
     """ Class for image dataset loading and preprocessing
 
         Args:
