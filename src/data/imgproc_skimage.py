@@ -36,8 +36,8 @@ class SKImageProcessing(imgproc.ImageProcessing):
     def normalize(self, image):
         # convert from integers to floats
         image_norm = image.astype('float32')
-        # normalize to range -1 to 1
-        image_norm = image_norm / 127.5 -1
+        # normalize to range 0 to 1
+        image_norm = image_norm / 255.0
         # return normalized images
         return image_norm
     
