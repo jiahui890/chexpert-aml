@@ -1,10 +1,13 @@
 from src.data import imgproc
 import numpy as np
+import random
 
 
 # import image processing library
 from skimage.io import imread as skimread
 from skimage.transform import resize as skresize
+from skimage.transform import rotate as skrotate
+from skimage.transform import rescale as skrescale
 # from skimage.color import rgb2grey
 from skimage.filters import gaussian, laplace, median
 from skimage import exposure
@@ -53,4 +56,25 @@ class SKImageProcessing(imgproc.ImageProcessing):
     def median_blur(self, image):
         return median(image)
     
+    def rotate(self, image, degree=None):
+        if degree is None:
+            degree = random.randrange(-10,10)
+        return skrotate(image, degree)
 
+    def zoom(self, image, percentage=None):
+        if percentage is None:
+            percentage = random.uniform(1.0, 1.25)
+        height, width = image.shape
+        enlarge = skresize(image, (round(height*percentage), round(width*percentage)))
+        
+        ori_height, ori_width = enlarge.shape
+        
+        diff_height = ori_height-height
+        diff_width = ori_width-width
+                
+        top = diff_height//2
+        bottom = top+height
+        left = diff_width//2
+        right = left+width
+        
+        return enlarge[top:bottom, left:right]
