@@ -32,7 +32,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     #TODO: Add argparse for image transformation
     parser.add_argument("--pca", type=bool, default=False)
-    parser.add_argument("--preprocessing", type=str, default="notebooks/preprocessing_config.yaml")
+    parser.add_argument("--preprocessing", type=str, default="config/default_preprocessing.yaml")
     parser.add_argument("--file", type=str, default='chexpert')
     parser.add_argument("--map", type=str, default='Random', choices=['U-zero', 'U-one', 'Random'])
     parser.add_argument("--batchsize", type=int, default=32)
