@@ -50,10 +50,20 @@ if __name__ == '__main__':
 
     with open(preprocessing_path,'r') as file:
         preprocessing_config = yaml.full_load(file)
+    train_df = pd.read_csv(train_csv_path)
+    test_df = pd.read_csv(test_csv_path)
 
-    train_dataset = ImageDataset(label_csv_path=train_csv_path, image_path_base=image_path, limit=limit,
+    if args.valid_size is not None:
+        valid_df = train_df.sample(n=round(args.valid_size*train_df.shape[0]), random_state=2021)
+        train_df = train_df.drop(valid_df.index)
+        valid_df = valid_df.reset_index(drop=True)
+        train_df = train_df.reset_index(drop=True)
+        valid_dataset = ImageDataset(label_df = valid_df, image_path_base=image_path,
                                  transformations=preprocessing_config["transformations"], map_option=args.map)
-    test_dataset = ImageDataset(label_csv_path=test_csv_path, image_path_base=image_path, transformations=preprocessing_config["transformations"])
+
+    train_dataset = ImageDataset(label_df = train_df, image_path_base=image_path, limit=limit,
+                                 transformations=preprocessing_config["transformations"], map_option=args.map)
+    test_dataset = ImageDataset(label_df = test_df, image_path_base=image_path, transformations=preprocessing_config["transformations"])
     print(f'train_dataset: {train_dataset}, {train_csv_path}')
     print(f'test_dataset: {test_dataset}, {test_csv_path}')
     print(f'==============================================')

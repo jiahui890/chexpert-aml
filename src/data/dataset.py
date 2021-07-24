@@ -20,7 +20,7 @@ class ImageDataset():
     # TODO: make Uncertainty Approaches cofigurable
     # TODO: return all the lables, now only [Cardiomegaly  Edema  Consolidation  Atelectasis  Pleural Effusion]
     def __init__(self,
-                 label_csv_path,
+                 label_df,
                  image_path_base=None,
                  proc_module='skimage',
                  transformations = [
@@ -28,17 +28,19 @@ class ImageDataset():
                      ('flatten', {})
                  ],
                  map_option = None,
+                 valid_size = None,
+                 random_state = 2021,
                  limit = None):
         self.image_path_base = image_path_base
         self.imgproc = get_proc_class(proc_module)
         self.transformations = transformations
         self.limit = limit
-        self.df = pd.read_csv(label_csv_path)
+        self.df = label_df
         self._feature_header = self.df.columns[1:5]
         self._label_header = self.df.columns[5::]
         if limit is not None:
-            self.df = self.df.sample(n=limit)
-        self.df.reset_index(drop=True)
+            self.df = self.df.sample(n=limit, random_state=random_state)
+        self.df = self.df.reset_index(drop=True)
         self._num_image = len(self.df)
         self.__clean__()
         if map_option is not None:
