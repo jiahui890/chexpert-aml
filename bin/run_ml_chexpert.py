@@ -1,5 +1,7 @@
 import os
 import sys
+
+from pandas.core.indexes import base
 sys.path.append('..')
 import argparse
 import datetime as dt
@@ -8,15 +10,11 @@ import yaml
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from torch.utils import data
 from src.data.dataset import ImageDataset
 from sklearn.decomposition import IncrementalPCA
-from sklearn.preprocessing import StandardScaler, MinMaxScaler
-from sklearn.svm import SVC
-from sklearn.linear_model import SGDClassifier
-from sklearn.naive_bayes import MultinomialNB
-from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import MinMaxScaler
 from sklearn.multioutput import MultiOutputClassifier
+from src.models.sklearn_models import models
 from sklearn.metrics import roc_auc_score, roc_curve, f1_score, accuracy_score
 import logging
 from datetime import datetime
@@ -41,6 +39,7 @@ if __name__ == '__main__':
     parser.add_argument("--path", type=str, default=default_dir)
     parser.add_argument("--ylabels", nargs='+', default=['Atelectasis', 'Cardiomegaly', 'Consolidation', 'Edema',
                         'Pleural Effusion'])
+    parser.add_argument("--model", type=str, default='MultinomialNB')
 
     args = parser.parse_args()
     logger.info(f'==============================================')
@@ -86,7 +85,7 @@ if __name__ == '__main__':
         pca_fname = os.path.join(model_path, f'{pca}_{batch_size}_{args.map}_{f_datetime}.sav')
         pickle.dump(pca, open(pca_fname, 'wb'))
 
-    base_model = MultinomialNB()
+    base_model = models[args.model]
     logger.info(f'model: {base_model}')
 
     if len(return_labels) > 1:
@@ -115,6 +114,7 @@ if __name__ == '__main__':
     if args.pca:
         x_image_test = MinMaxScaler().fit_transform(pca.transform(x_image_test))
     X_test = pd.concat([pd.DataFrame(x_features_test), pd.DataFrame(x_image_test)], axis=1)
+
     y_pred_multi = np.array(model.predict_proba(X_test))
     y_pred_labels = np.array(model.predict(X_test))
     logger.info(f'==============================================')
