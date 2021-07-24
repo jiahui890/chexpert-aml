@@ -29,6 +29,7 @@ if __name__ == '__main__':
     parser.add_argument("--file", type=str, default='chexpert')
     parser.add_argument("--map", type=str, default='Random', choices=['U-zero', 'U-one', 'Random'])
     parser.add_argument("--batchsize", type=int, default=32)
+    parser.add_argument("--validsize", type=float, default=None)
     parser.add_argument("--limit", type=int, default=None)
     parser.add_argument("--path", type=str, default=default_dir)
     parser.add_argument("--ylabels", nargs='+', default=['Atelectasis', 'Cardiomegaly', 'Consolidation', 'Edema',
@@ -53,6 +54,8 @@ if __name__ == '__main__':
 
     train_dataset = ImageDataset(label_csv_path=train_csv_path, image_path_base=image_path, limit=limit,
                                  transformations=preprocessing_config["transformations"], map_option=args.map)
+    if args.validsize is not None:
+        valid_dataset = train_dataset.split(validsize=args.validsize)
     test_dataset = ImageDataset(label_csv_path=test_csv_path, image_path_base=image_path, transformations=preprocessing_config["transformations"])
     print(f'train_dataset: {train_dataset}, {train_csv_path}')
     print(f'test_dataset: {test_dataset}, {test_csv_path}')
