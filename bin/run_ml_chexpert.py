@@ -40,6 +40,7 @@ if __name__ == '__main__':
     parser.add_argument("--ylabels", nargs='+', default=['Atelectasis', 'Cardiomegaly', 'Consolidation', 'Edema',
                         'Pleural Effusion'])
     parser.add_argument("--model", type=str, default='MultinomialNB')
+    parser.add_argument("--n_jobs", type=int, default=-1)
 
     args = parser.parse_args()
     logger.info(f'==============================================')
@@ -89,7 +90,7 @@ if __name__ == '__main__':
     logger.info(f'model: {base_model}')
 
     if len(return_labels) > 1:
-        model = MultiOutputClassifier(base_model)
+        model = MultiOutputClassifier(base_model, n_jobs=args.n_jobs)
         logger.info ("Extending to Multi Output Classifer")
     else:
         model = base_model
