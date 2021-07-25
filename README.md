@@ -3,6 +3,11 @@ ISS610: Applied Machine Learning Project
 
 Chest x-ray automated diagnosis machine learning project.
 
+TODO
+------------
+* Add image preprocessing pipeline to CNN model
+* Add in more CNN and sklearn model options
+
 Getting Started
 ------------
 
@@ -103,6 +108,8 @@ and epochs = 5
 
 Configurations
 ------------
+
+### Image Preprocessing 
 The list of `.yaml` image preprocessing pipeline is under `/config/`
 
 ```
@@ -115,10 +122,20 @@ transformations:
   - [flatten,{}]
 ```
 
+### CNN hyperparameter 
+The list of `.yaml` cnn model hyperparameter config is under `/config/`
+
+```
+optimizer: Adam
+learning_rate: 0.0001
+loss: binary_crossentropy
+```
+
 ### Models
 
-Additional sklearn models can be added under `/src/models/sklearn_models.py`
- 
+* Additional sklearn models can be added under `/src/models/sklearn_models.py`
+ * Additional Tensorflow models can be added under `/src/models/tensorflow_models.py`
+
 
 Project Organization
 ------------
