@@ -17,8 +17,6 @@ class ImageDataset():
             transformations (list, optional): list of image transformations and their arguments. Defaults to [ ('resize', {'size': (320, 320)}), ('flatten', {}) ].
             limit (int, optional): Maxinum limit for loading the dataset. Defaults to None.
     """
-    # TODO: make Uncertainty Approaches cofigurable
-    # TODO: return all the lables, now only [Cardiomegaly  Edema  Consolidation  Atelectasis  Pleural Effusion]
     def __init__(self,
                  label_csv_path=None,
                  label_df=None,
@@ -30,7 +28,8 @@ class ImageDataset():
                  ],
                  map_option = None,
                  random_state = 2021,
-                 limit = None):
+                 limit = None,
+                 clean=True):
         self.image_path_base = image_path_base
         self.imgproc = get_proc_class(proc_module)
         self.transformations = transformations
@@ -49,7 +48,8 @@ class ImageDataset():
             self.df = self.df.sample(n=limit, random_state=self.random_state)
         self.df = self.df.reset_index(drop=True)
         self._num_image = len(self.df)
-        self.__clean__()
+        if clean:
+            self.__clean__()
         if self.map_option is not None:
             self.__map_uncertain__(option=self.map_option)
 
@@ -73,15 +73,16 @@ class ImageDataset():
         self.df['AP/PA'] = self.df['AP/PA'].map({'AP': 1, 'PA': 0})
         #Not sure why still has np.nan exists
         self.df['AP/PA'] = self.df['AP/PA'].replace(np.nan, 1)
+        # Replace np.nan with 0
+        self.df[self._label_header] = self.df[self._label_header].replace(np.nan, 0)
         self.df.reset_index(drop=True)
         self._num_image = len(self.df)
 
-    def __map_uncertain__(self, option=None, columns=None):
+    def __map_uncertain__(self, option):
         """"Map the uncertain label of -1 to [0,1] depending on mapping option, replace np.nan with 0.
 
         Args:
-            option : List of options 'U-zero', 'U-one' and 'Random'
-            columns: List of columns to map
+            option : str or dict of column label uncertain approach. Options value can be 'U-zero', 'U-one' and 'Random'
         """
         map_dict = {
             'U-zero':
@@ -100,23 +101,25 @@ class ImageDataset():
                 }
         }
 
-        # Replace np.nan with 0
-        if columns == None:
-            columns = self._label_header
-        self.df[columns] = self.df[columns].replace(np.nan, 0)
+        op_dict = option
 
-        if option == 'U-zero' or option == 'U-one':
-            for col in columns:
-                self.df[col] = self.df[col].map(map_dict[option])
-        elif option == 'Random':
-            for col in columns:
+        if type(option) == str:
+            op_dict = {col:option for col in self._label_header} 
+
+        columns = list(op_dict.keys())
+
+        for col, opt in op_dict.items():
+            if opt == 'U-zero' or opt == 'U-one':
+                self.df[col] = self.df[col].map(map_dict[opt])
+            elif opt == 'Random':
                 sum_positive = (self.df[col] == 1.0).sum()
                 sum_negative = (self.df[col] == 0.0).sum()
                 prob_positive = sum_positive / (sum_positive + sum_negative)
                 list_size = self.df[self.df[col] == -1.0][col].size
+                
                 random_list = np.random.choice(a=[0, 1], p=[1 - prob_positive, prob_positive], size=list_size)
                 self.df.loc[self.df[col] == -1.0, col] = random_list
-    
+
     def split(self, validsize):
         self.valid_df = self.df.sample(n=round(validsize*self.df.shape[0]), random_state=self.random_state)
         self.df = (self.df.drop(self.valid_df.index)
@@ -127,7 +130,7 @@ class ImageDataset():
         return ImageDataset(label_df=self.valid_df, image_path_base=self.image_path_base,
                                  transformations=self.transformations, map_option=self.map_option)
 
-    def batchloader(self, batch_size, return_labels=None):
+    def batchloader(self, batch_size, return_labels=None, without_image=False, return_X_y=True):
         """Loader for loading dataset in batch.
 
         Args:
@@ -137,9 +140,9 @@ class ImageDataset():
         Returns:
             BatchLoader: a literator.
         """
-        return BatchLoader(self, batch_size, return_labels)
+        return BatchLoader(self, batch_size, return_labels, without_image=without_image, return_X_y=return_X_y)
 
-    def load(self, return_labels=None):
+    def load(self, return_labels=None, without_image=False, return_X_y=True):
         """Load the entire dataset.
 
         Args:
@@ -148,6 +151,6 @@ class ImageDataset():
         Returns:
             X, y: Pandas DataFrame
         """
-        return next(iter(BatchLoader(self, self._num_image, return_labels)))
+        return next(iter(BatchLoader(self, self._num_image, return_labels, without_image=without_image, return_X_y=return_X_y)))
 
 
