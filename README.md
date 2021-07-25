@@ -15,34 +15,45 @@ Usage
 To run the ml jobs, simply run the following
 
 ```
-usage: /bin/run_ml_chexpert.py [-h] [--pca {True,False}] [--pca_pretrained PCA_PRETRAINED] [--pca_n_components PCA_N_COMPONENTS] [--preprocessing PREPROCESSING] [--file FILE] [--map {U-zero,U-one,Random}] [--batchsize BATCHSIZE] [--validsize VALIDSIZE] [--limit LIMIT] [--path PATH]
-                          [--ylabels YLABELS [YLABELS ...]] [--model {MultinomialNB,SGDClassifier}] [--model_pretrained MODEL_PRETRAINED] [--n_jobs N_JOBS]
+usage: python /bin/run_ml_chexpert.py [-h] [--pca {True,False}] [--pca_pretrained PCA_PRETRAINED] [--pca_n_components PCA_N_COMPONENTS] [--preprocessing PREPROCESSING] [--file FILE] [--map {U-zero,U-one,Random}] [--batchsize BATCHSIZE] [--validsize VALIDSIZE] [--limit LIMIT] [--path PATH]
+                          [--ylabels {No Finding,Enlarged Cardiomediastinum,Cardiomegaly,Lung Opacity,Lung Lesion,Edema,Consolidation,Pneumonia,Atelectasis,Pneumothorax,Pleural Effusion,Pleural Other,Fracture,Support Devices} [{No Finding,Enlarged Cardiomediastinum,Cardiomegaly,Lung Opacity,Lung Lesion,Edema,Co
+nsolidation,Pneumonia,Atelectasis,Pneumothorax,Pleural Effusion,Pleural Other,Fracture,Support Devices} ...]]
+                          [--cnn_transfer {0,1}] [--cnn {True,False}] [--cnn_model {MobileNetv2_Songhan,Resnet50_Arnold}] [--cnn_param CNN_PARAM] [--model {MultinomialNB,GaussianNB,SGDClassifier,SGDClassifier_Elastic}] [--model_pretrained MODEL_PRETRAINED] [--n_jobs N_JOBS] [--epochs EPOCHS]
 
 optional arguments:
   -h, --help            show this help message and exit
-  --pca {True,False}    Training for pca
+  --pca {True,False}    Option to train pca model.
   --pca_pretrained PCA_PRETRAINED
-                        .sav file path for pretrained pca model
+                        .sav file path for pretrained pca model.
   --pca_n_components PCA_N_COMPONENTS
-                        n_components for pca
+                        n_components for pca.
   --preprocessing PREPROCESSING
-                        File path for image preprocessing
-  --file FILE           Filename prefix
+                        File path for image preprocessing.
+  --file FILE           Filename prefix. You should give a meaningful name for easy tracking.
   --map {U-zero,U-one,Random}
-                        Option for mapping uncertain labels
+                        Option for mapping uncertain labels.
   --batchsize BATCHSIZE
-                        Training batch size
+                        Training batch size.
   --validsize VALIDSIZE
-                        Validation dataset size
-  --limit LIMIT         Maximum dataset size capped
-  --path PATH           Base path
-  --ylabels YLABELS [YLABELS ...]
-                        Labels to predict
-  --model {MultinomialNB,SGDClassifier}
-                        Choice of model
+                        Validation dataset size.
+  --limit LIMIT         Maximum dataset size capped.
+  --path PATH           Base path.
+  --ylabels {No Finding,Enlarged Cardiomediastinum,Cardiomegaly,Lung Opacity,Lung Lesion,Edema,Consolidation,Pneumonia,Atelectasis,Pneumothorax,Pleural Effusion,Pleural Other,Fracture,Support Devices} [{No Finding,Enlarged Cardiomediastinum,Cardiomegaly,Lung Opacity,Lung Lesion,Edema,Consolidation,Pneumonia,Ate
+lectasis,Pneumothorax,Pleural Effusion,Pleural Other,Fracture,Support Devices} ...]
+                        Labels to predict.
+  --cnn_transfer {0,1}  1 to have transfer learning, 0 to train from scratch
+  --cnn {True,False}    'True' if running CNN model.
+  --cnn_model {MobileNetv2_Songhan,Resnet50_Arnold}
+                        Choice of cnn model.
+  --cnn_param CNN_PARAM
+                        .yaml config file for model hyperparameter
+  --model {MultinomialNB,GaussianNB,SGDClassifier,SGDClassifier_Elastic}
+                        Choice of model.
   --model_pretrained MODEL_PRETRAINED
                         .sav file for pretrained classifer e.g NaiveBayes_50_50_Random_1259_25072021.sav
-  --n_jobs N_JOBS       Number of cores for multi-processing
+  --n_jobs N_JOBS       Number of cores for multi-processing.
+  --epochs EPOCHS       Number of epochs.
+
 
 ```
 ###  Examples 
@@ -76,6 +87,19 @@ you used earlier during training.
 --preprocessing "config/crop_median_blur_normalize_rotate_zoom.yaml" 
 --ylabels "No Finding" "Edema" 
 --file pca_nb`
+
+* To train a CNN model with batch size of 16, no limit of dataset with transfer learning, default hyperparameter 
+and epochs = 5
+
+`python run_ml_chexpert.py 
+--batchsize 16 
+--limit 10000 
+--epochs 5
+--cnn_model MobileNetv2_Songhan
+--cnn_transfer 1
+--cnn True
+--file cnn_default`
+
 
 Configurations
 ------------
