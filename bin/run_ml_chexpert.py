@@ -101,6 +101,11 @@ if __name__ == '__main__':
     elif args.cnn == 'False':
         process_cnn = False
 
+    if process_cnn:
+        modelname = args.cnn_model
+    else:
+        modelname = args.model
+
     if args.pca_n_components > batch_size and process_pca:
         raise ValueError(f'Number of pca components {args.pca_n_component} is larger than batch size {batch_size}!')
 
@@ -173,7 +178,7 @@ if __name__ == '__main__':
                                tf.keras.metrics.Recall()])
 
         cnn_fname = os.path.join(model_path,
-                                 f'{model.__class__.__name__}_{args.epochs}_{batch_size}_{args.map}_{f_datetime}.sav')
+                                 f'{modelname}_{args.epochs}_{batch_size}_{args.map}_{f_datetime}.sav')
 
         model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
             filepath=cnn_fname,
@@ -256,15 +261,15 @@ if __name__ == '__main__':
         y_pred_labels = np.array(model.predict(X_test))
 
     if process_pca and not process_cnn:
-        model_title = f"(PCA {pca.n_components} {args.model} | {args.map})"
+        model_title = f"(PCA {pca.n_components} {modelname} | {args.map})"
     else:
-        model_title = f"({args.model} | {args.map})"
+        model_title = f"({modelname} | {args.map})"
 
     logger.info(f'*********************************************')
     logger.info(f'         Verification results                ')
     logger.info(f'*********************************************\n')
 
-    results_path = os.path.join(results_path, f_date_dir, args.file, args.model)
+    results_path = os.path.join(results_path, f_date_dir, args.file, modelfname)
     if not os.path.exists(results_path):
         os.makedirs(results_path)
 
@@ -298,9 +303,9 @@ if __name__ == '__main__':
         ax.set_xlabel("False Positive Rate", fontsize=8)
         ax.set_ylabel("True Positive Rate", fontsize=8)
         fig_fname = os.path.join(results_path,
-                                 f"{args.file}_{args.model}_{batch_size}_{args.map}_{label}_{f_datetime}.png")
+                                 f"{args.file}_{modelname}_{batch_size}_{args.map}_{label}_{f_datetime}.png")
         text_fname = os.path.join(results_path,
-                                  f"{args.file}_{args.model}_{batch_size}_{args.map}_{label}_{f_datetime}.txt")
+                                  f"{args.file}_{modelname}_{batch_size}_{args.map}_{label}_{f_datetime}.txt")
         f = open(text_fname, "w")
         fig.savefig(fig_fname, dpi=200)
         fig.clear()
