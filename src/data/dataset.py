@@ -18,8 +18,12 @@ class ImageDataset():
             limit (int, optional): Maxinum limit for loading the dataset. Defaults to None.
     """
     def __init__(self,
+<<<<<<< HEAD
                  label_csv_path=None,
                  label_df=None,
+=======
+                 label_df,
+>>>>>>> 3e425c841b4b86775cbfd8b6854d9b897c27bfdc
                  image_path_base=None,
                  proc_module='skimage',
                  transformations = [
@@ -27,15 +31,22 @@ class ImageDataset():
                      ('flatten', {})
                  ],
                  map_option = None,
+<<<<<<< HEAD
                  random_state = 2021,
                  limit = None,
                  clean=True):
+=======
+                 valid_size = None,
+                 random_state = 2021,
+                 limit = None):
+>>>>>>> 3e425c841b4b86775cbfd8b6854d9b897c27bfdc
         self.image_path_base = image_path_base
         self.imgproc = get_proc_class(proc_module)
         self.transformations = transformations
         self.map_option = map_option
         self.random_state = random_state
         self.limit = limit
+<<<<<<< HEAD
         if label_csv_path is not None:
             self.df = pd.read_csv(label_csv_path)
         elif label_df is not None:
@@ -46,6 +57,13 @@ class ImageDataset():
         self._label_header = self.df.columns[5::]
         if limit is not None:
             self.df = self.df.sample(n=limit, random_state=self.random_state)
+=======
+        self.df = label_df
+        self._feature_header = self.df.columns[1:5]
+        self._label_header = self.df.columns[5::]
+        if limit is not None:
+            self.df = self.df.sample(n=limit, random_state=random_state)
+>>>>>>> 3e425c841b4b86775cbfd8b6854d9b897c27bfdc
         self.df = self.df.reset_index(drop=True)
         self._num_image = len(self.df)
         if clean:
