@@ -1,0 +1,5 @@
+transformations:
+  - [crop, {size: [320,320]}]
+  - [eqhist,{}]
+  - [median_blur,{}]
+  - [flatten,{}]

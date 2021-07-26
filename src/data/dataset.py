@@ -20,7 +20,8 @@ class ImageDataset():
     # TODO: make Uncertainty Approaches cofigurable
     # TODO: return all the lables, now only [Cardiomegaly  Edema  Consolidation  Atelectasis  Pleural Effusion]
     def __init__(self,
-                 label_csv_path,
+                 label_csv_path=None,
+                 label_df=None,
                  image_path_base=None,
                  proc_module='skimage',
                  transformations = [
@@ -28,21 +29,29 @@ class ImageDataset():
                      ('flatten', {})
                  ],
                  map_option = None,
+                 random_state = 2021,
                  limit = None):
         self.image_path_base = image_path_base
         self.imgproc = get_proc_class(proc_module)
         self.transformations = transformations
+        self.map_option = map_option
+        self.random_state = random_state
         self.limit = limit
-        self.df = pd.read_csv(label_csv_path)
+        if label_csv_path is not None:
+            self.df = pd.read_csv(label_csv_path)
+        elif label_df is not None:
+            self.df = label_df
+        else:
+            print('Either label_df or label_csv_path must be specified')
         self._feature_header = self.df.columns[1:5]
         self._label_header = self.df.columns[5::]
         if limit is not None:
-            self.df = self.df.sample(n=limit)
-        self.df.reset_index(drop=True)
+            self.df = self.df.sample(n=limit, random_state=self.random_state)
+        self.df = self.df.reset_index(drop=True)
         self._num_image = len(self.df)
         self.__clean__()
-        if map_option is not None:
-            self.__map_uncertain__(option=map_option)
+        if self.map_option is not None:
+            self.__map_uncertain__(option=self.map_option)
 
     def __len__(self):
         return self._num_image
@@ -108,6 +117,16 @@ class ImageDataset():
                 random_list = np.random.choice(a=[0, 1], p=[1 - prob_positive, prob_positive], size=list_size)
                 self.df.loc[self.df[col] == -1.0, col] = random_list
     
+    def split(self, validsize):
+        self.valid_df = self.df.sample(n=round(validsize*self.df.shape[0]), random_state=self.random_state)
+        self.df = (self.df.drop(self.valid_df.index)
+                          .reset_index(drop=True))
+        self._num_image = len(self.df)
+        self.valid_df = self.valid_df.reset_index(drop=True)
+        
+        return ImageDataset(label_df=self.valid_df, image_path_base=self.image_path_base,
+                                 transformations=self.transformations, map_option=self.map_option)
+
     def batchloader(self, batch_size, return_labels=None):
         """Loader for loading dataset in batch.
 
