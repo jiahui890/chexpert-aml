@@ -95,12 +95,12 @@ class TfImageProcessing(imgproc.ImageProcessing):
         return tf.image.resize(image, [*size])
 
     def crop(self, image, size=(320, 320)):
-        return tf.image.resize_with_crop_or_pad(image, *size)
+        return tf.cast(tf.image.resize_with_crop_or_pad(image, *size), tf.float32)
 
     # Normalize
     def normalize(self, image):
         # This will convert to float values in [0, 1]
-        return image / 255.0
+        return image/ 255.0
 
     def eqhist(self, image):
         return tfa.image.equalize(image)
