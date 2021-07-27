@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 from src.data.batchloader import BatchLoader
+from sklearn.utils.class_weight import compute_class_weight
 import os
 
 
@@ -69,6 +70,9 @@ class ImageDataset():
         self.df['Age'] = self.df['Age'] / 100.0
         self.df['Path'] = self.df['Path'].apply(lambda x: x.replace('CheXpert-v1.0-small', self.image_path_base))
         self.df['Frontal/Lateral'] = self.df['Frontal/Lateral'].map({'Frontal': 1, 'Lateral': 0})
+        #Frontal view only
+        #TODO: Add option to filter out non-frontal view
+        #self.df = self.df[self.df['Frontal/Lateral'] == 1]
         self.df['Sex'] = self.df['Sex'].map({'Male': 1, 'Female': 0, 'Unknown': 1})
         self.df['AP/PA'] = self.df['AP/PA'].replace(np.nan, 'AP')
         self.df['AP/PA'] = self.df['AP/PA'].map({'AP': 1, 'PA': 0})
@@ -78,6 +82,7 @@ class ImageDataset():
         self.df[self._label_header] = self.df[self._label_header].replace(np.nan, 0)
         self.df.reset_index(drop=True)
         self._num_image = len(self.df)
+
 
     def __map_uncertain__(self, option):
         """"Map the uncertain label of -1 to [0,1] depending on mapping option, replace np.nan with 0.
@@ -117,7 +122,6 @@ class ImageDataset():
                 sum_negative = (self.df[col] == 0.0).sum()
                 prob_positive = sum_positive / (sum_positive + sum_negative)
                 list_size = self.df[self.df[col] == -1.0][col].size
-                
                 random_list = np.random.choice(a=[0, 1], p=[1 - prob_positive, prob_positive], size=list_size)
                 self.df.loc[self.df[col] == -1.0, col] = random_list
 
@@ -129,7 +133,7 @@ class ImageDataset():
         self.valid_df = self.valid_df.reset_index(drop=True)
         
         return ImageDataset(label_df=self.valid_df, image_path_base=self.image_path_base,
-                                 transformations=self.transformations, map_option=self.map_option)
+                                 transformations=self.transformations, map_option=self.map_option, clean=False)
 
     def batchloader(self, batch_size, return_labels=None, without_image=False, return_X_y=True):
         """Loader for loading dataset in batch.
@@ -153,5 +157,22 @@ class ImageDataset():
             X, y: Pandas DataFrame
         """
         return next(iter(BatchLoader(self, self._num_image, return_labels, without_image=without_image, return_X_y=return_X_y)))
+
+    def get_class_weights(self, return_labels=None):
+        """"Get the class weights.
+
+        Args:
+            return_labels ([list, optional): List of labels to be return. If value is None it will return all labels. Defaults to None.
+
+        Returns:
+            class_weight_list: List of class weight dict
+        """
+        class_weight_list = {}
+        for idx, col in enumerate(return_labels):
+            y_data = self.df[col].values.flatten()
+            class_weight = compute_class_weight(class_weight='balanced', classes=[0, 1], y=y_data)
+            class_weight_list[idx] = {0: class_weight[0], 1: class_weight[1]}
+
+        return class_weight_list
 
 
