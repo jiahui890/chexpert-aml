@@ -61,7 +61,7 @@ if __name__ == '__main__':
     parser.add_argument("--cnn", type=str, default='False', choices=['True', 'False'],
                         help="'True' if running CNN model.")
     parser.add_argument("--cnn_pretrained", type=str, default=None, help="model file path for pretrained cnn model.")
-    parser.add_argument("--cnn_model", type=str, default='MobileNetv2_Songhan', choices=[m for m in cnn_models],
+    parser.add_argument("--cnn_model", type=str, default='MobileNetv2_keras', choices=[m for m in cnn_models],
                         help="Choice of cnn model.")
     parser.add_argument("--cnn_param", type=str, default="config/cnn_model.yaml",
                         help=".yaml config file for model hyperparameter")
@@ -121,8 +121,8 @@ if __name__ == '__main__':
         cnn_param_config = yaml.full_load(file)
         logger.info(cnn_param_config)
 
-    test_transformations = {key:val for key,val in transformations if key in allowed_transformations}
-    
+    test_transformations = [[key, val] for key,val in transformations if key in allowed_transformations]
+
     train_dataset = ImageDataset(label_csv_path=train_csv_path, image_path_base=image_path, limit=limit,
                                  transformations=preprocessing_config["transformations"], map_option=args.map)
     class_weight_list = train_dataset.get_class_weights(return_labels)
