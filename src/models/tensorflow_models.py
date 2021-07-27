@@ -77,7 +77,7 @@ def convolutional_block(X, f, filters, stage, block, s=2):
 
     return X
 
-def Resnet152_new(output_size, not_transfer=False, feature_shape=(4,), image_shape=(320,320, 1)):
+def ResNet152_new(output_size, not_transfer=False, feature_shape=(4,), image_shape=(320,320, 1)):
 
     inputs_feature = Input(shape=feature_shape)
     inputs_image = Input(shape=image_shape)
@@ -270,8 +270,8 @@ def ResNet152_keras(output_size, not_transfer=False, feature_shape=(4,), image_s
 
 
 cnn_models = {
-    "Resnet152_new": Resnet152_new,
+    "ResNet152_new": Resnet152_new,
     "MobileNetv2_keras": MobileNetv2_keras,
     "Densenet121_keras": DenseNet121,
-    "Resnet152_keras": Resnet152_new
+    "ResNet152_keras": Resnet152_new
 }
