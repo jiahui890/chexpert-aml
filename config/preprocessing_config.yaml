@@ -1,5 +1,5 @@
 transformations:
-  - [crop, {size: [320,320]}]
-  - [eqhist,{}]
-  - [gaussian_blur,{}]
-  - [flatten,{}]
+  - [resize, {size: [320,320]}]
+  - [normalize, {}]
+  - [rotate, {}]
+  - [zoom, {}]

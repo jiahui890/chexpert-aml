@@ -112,6 +112,7 @@ if __name__ == '__main__':
     with open(preprocessing_path, 'r') as file:
         preprocessing_config = yaml.full_load(file)
         transformations = preprocessing_config["transformations"]
+        logger.info(transformations)
     with open(cnn_param_path, 'r') as file:
         cnn_param_config = yaml.full_load(file)
 
@@ -269,7 +270,7 @@ if __name__ == '__main__':
     logger.info(f'         Verification results                ')
     logger.info(f'*********************************************\n')
 
-    results_path = os.path.join(results_path, f_date_dir, args.file, modelfname)
+    results_path = os.path.join(results_path, f_date_dir, args.file, modelname)
     if not os.path.exists(results_path):
         os.makedirs(results_path)
 
