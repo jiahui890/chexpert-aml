@@ -270,8 +270,8 @@ def ResNet152_keras(output_size, not_transfer=False, feature_shape=(4,), image_s
 
 
 cnn_models = {
-    "ResNet152_new": Resnet152_new,
+    "ResNet152_new": ResNet152_new,
     "MobileNetv2_keras": MobileNetv2_keras,
     "Densenet121_keras": DenseNet121,
-    "ResNet152_keras": Resnet152_new
+    "ResNet152_keras": ResNet152_new
 }
