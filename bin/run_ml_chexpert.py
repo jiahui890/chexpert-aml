@@ -103,8 +103,10 @@ if __name__ == '__main__':
 
     if process_cnn:
         modelname = args.cnn_model
+        allowed_transformations = ['crop', 'resize', 'eqhist', 'adaptive_eqhist', 'normalize']
     else:
         modelname = args.model
+        allowed_transformations = ['crop', 'resize', 'eqhist', 'adaptive_eqhist', 'median_blur', 'gaussian_blur', 'normalize']
 
     if args.pca_n_components > batch_size and process_pca:
         raise ValueError(f'Number of pca components {args.pca_n_component} is larger than batch size {batch_size}!')
@@ -116,11 +118,13 @@ if __name__ == '__main__':
     with open(cnn_param_path, 'r') as file:
         cnn_param_config = yaml.full_load(file)
 
+    test_transformations = {key:val for key,val in transformations if key in allowed_transformations}
+    
     train_dataset = ImageDataset(label_csv_path=train_csv_path, image_path_base=image_path, limit=limit,
                                  transformations=preprocessing_config["transformations"], map_option=args.map)
     if args.validsize is not None:
-        valid_dataset = train_dataset.split(validsize=args.validsize)
-    test_dataset = ImageDataset(label_csv_path=test_csv_path, image_path_base=image_path)
+        valid_dataset = train_dataset.split(validsize=args.validsize, transformations=test_transformations)
+    test_dataset = ImageDataset(label_csv_path=test_csv_path, image_path_base=image_path, transformations=test_transformations)
     logger.info(f'train_dataset: {train_dataset}, {train_csv_path}')
     logger.info(f'test_dataset: {test_dataset}, {test_csv_path}')
     logger.info(f'==============================================')
@@ -150,9 +154,9 @@ if __name__ == '__main__':
 
         tfds_train = tfds_train.map(lambda x, y, z: tf_read_image(x, y, z, transformations=transformations),
                                     num_parallel_calls=tf.data.AUTOTUNE)
-        tfds_valid = tfds_valid.map(lambda x, y, z: tf_read_image(x, y, z, transformations=transformations),
+        tfds_valid = tfds_valid.map(lambda x, y, z: tf_read_image(x, y, z, transformations=test_transformations),
                                     num_parallel_calls=tf.data.AUTOTUNE)
-        tfds_test = tfds_test.map(lambda x, y, z: tf_read_image(x, y, z, transformations=transformations),
+        tfds_test = tfds_test.map(lambda x, y, z: tf_read_image(x, y, z, transformations=test_transformations),
                                   num_parallel_calls=tf.data.AUTOTUNE)
 
         for feat, lab in tfds_train.take(1):
