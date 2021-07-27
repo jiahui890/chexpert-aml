@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 from src.data.batchloader import BatchLoader
+from sklearn.utils.class_weight import compute_class_weight
 import os
 
 
