@@ -66,6 +66,7 @@ class ImageDataset():
     def __clean__(self):
         """"Perform basic data cleaning
         """
+        self.df['Age'] = self.df['Age'] / 100.0
         self.df['Path'] = self.df['Path'].apply(lambda x: x.replace('CheXpert-v1.0-small', self.image_path_base))
         self.df['Frontal/Lateral'] = self.df['Frontal/Lateral'].map({'Frontal': 1, 'Lateral': 0})
         self.df['Sex'] = self.df['Sex'].map({'Male': 1, 'Female': 0, 'Unknown': 1})
