@@ -33,13 +33,13 @@ if __name__ == '__main__':
 
     default_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
     parser = argparse.ArgumentParser()
-    # TODO: Add argparse for image transformation
+
 
     parser.add_argument("--pca", type=str, default='False', choices=['True', 'False'],
                         help="Option to train pca model.")
     parser.add_argument("--pca_pretrained", type=str, default=None, help=".sav file path for pretrained pca model.")
     parser.add_argument("--pca_n_components", type=int, default=32, help="n_components for pca.")
-    parser.add_argument("--preprocessing", type=str, default="config/default_preprocessing.yaml",
+    parser.add_argument("--preprocessing", type=str, default="default_preprocessing.yaml",
                         help="File path for image preprocessing.")
     parser.add_argument("--file", type=str, default='chexpert', help="Filename prefix. "
                                                                      "You should give a meaningful name for easy tracking.")
@@ -75,7 +75,7 @@ if __name__ == '__main__':
     logger.info('Loading dataset')
     process_pca = False
     base_path = args.path
-    preprocessing_path = os.path.join(base_path, args.preprocessing)
+    preprocessing_path = os.path.join(base_path, "config", args.preprocessing)
     cnn_param_path = os.path.join(base_path, args.cnn_param)
     image_path = os.path.join(base_path, "data", "raw")
     train_csv_path = os.path.join(base_path, "data", "raw", "CheXpert-v1.0-small", "train.csv")
@@ -101,11 +101,18 @@ if __name__ == '__main__':
     elif args.cnn == 'False':
         process_cnn = False
 
+    if process_cnn:
+        modelname = args.cnn_model
+    else:
+        modelname = args.model
+
     if args.pca_n_components > batch_size and process_pca:
         raise ValueError(f'Number of pca components {args.pca_n_component} is larger than batch size {batch_size}!')
 
     with open(preprocessing_path, 'r') as file:
         preprocessing_config = yaml.full_load(file)
+        transformations = preprocessing_config["transformations"]
+        logger.info(transformations)
     with open(cnn_param_path, 'r') as file:
         cnn_param_config = yaml.full_load(file)
 
@@ -113,8 +120,7 @@ if __name__ == '__main__':
                                  transformations=preprocessing_config["transformations"], map_option=args.map)
     if args.validsize is not None:
         valid_dataset = train_dataset.split(validsize=args.validsize)
-    test_dataset = ImageDataset(label_csv_path=test_csv_path, image_path_base=image_path,
-                                transformations=preprocessing_config["transformations"])
+    test_dataset = ImageDataset(label_csv_path=test_csv_path, image_path_base=image_path)
     logger.info(f'train_dataset: {train_dataset}, {train_csv_path}')
     logger.info(f'test_dataset: {test_dataset}, {test_csv_path}')
     logger.info(f'==============================================')
@@ -142,9 +148,12 @@ if __name__ == '__main__':
                                                         test_dataset.df['Path'].values,
                                                         test_dataset.df[return_labels].values))
 
-        tfds_train = tfds_train.map(tf_read_image, num_parallel_calls=tf.data.AUTOTUNE)
-        tfds_valid = tfds_valid.map(tf_read_image, num_parallel_calls=tf.data.AUTOTUNE)
-        tfds_test = tfds_test.map(tf_read_image, num_parallel_calls=tf.data.AUTOTUNE)
+        tfds_train = tfds_train.map(lambda x, y, z: tf_read_image(x, y, z, transformations=transformations),
+                                    num_parallel_calls=tf.data.AUTOTUNE)
+        tfds_valid = tfds_valid.map(lambda x, y, z: tf_read_image(x, y, z, transformations=transformations),
+                                    num_parallel_calls=tf.data.AUTOTUNE)
+        tfds_test = tfds_test.map(lambda x, y, z: tf_read_image(x, y, z, transformations=transformations),
+                                  num_parallel_calls=tf.data.AUTOTUNE)
 
         for feat, lab in tfds_train.take(1):
             feature_shape = (feat[0].shape[1],)
@@ -170,7 +179,7 @@ if __name__ == '__main__':
                                tf.keras.metrics.Recall()])
 
         cnn_fname = os.path.join(model_path,
-                                 f'{model.__class__.__name__}_{args.epochs}_{batch_size}_{args.map}_{f_datetime}.sav')
+                                 f'{modelname}_{args.epochs}_{batch_size}_{args.map}_{f_datetime}.sav')
 
         model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
             filepath=cnn_fname,
@@ -253,15 +262,15 @@ if __name__ == '__main__':
         y_pred_labels = np.array(model.predict(X_test))
 
     if process_pca and not process_cnn:
-        model_title = f"(PCA {pca.n_components} {args.model} | {args.map})"
+        model_title = f"(PCA {pca.n_components} {modelname} | {args.map})"
     else:
-        model_title = f"({args.model} | {args.map})"
+        model_title = f"({modelname} | {args.map})"
 
     logger.info(f'*********************************************')
     logger.info(f'         Verification results                ')
     logger.info(f'*********************************************\n')
 
-    results_path = os.path.join(results_path, f_date_dir, args.file, args.model)
+    results_path = os.path.join(results_path, f_date_dir, args.file, modelname)
     if not os.path.exists(results_path):
         os.makedirs(results_path)
 
@@ -295,9 +304,9 @@ if __name__ == '__main__':
         ax.set_xlabel("False Positive Rate", fontsize=8)
         ax.set_ylabel("True Positive Rate", fontsize=8)
         fig_fname = os.path.join(results_path,
-                                 f"{args.file}_{args.model}_{batch_size}_{args.map}_{label}_{f_datetime}.png")
+                                 f"{args.file}_{modelname}_{batch_size}_{args.map}_{label}_{f_datetime}.png")
         text_fname = os.path.join(results_path,
-                                  f"{args.file}_{args.model}_{batch_size}_{args.map}_{label}_{f_datetime}.txt")
+                                  f"{args.file}_{modelname}_{batch_size}_{args.map}_{label}_{f_datetime}.txt")
         f = open(text_fname, "w")
         fig.savefig(fig_fname, dpi=200)
         fig.clear()
@@ -313,6 +322,7 @@ if __name__ == '__main__':
         if process_pca:
             logger.info(f'PCA components: {pca.n_components}')
             f.write(f'PCA components: {pca.n_components}\n')
+
         logger.info(f'Model: {model}')
         logger.info(f'Uncertain label mapping: {args.map}')
         logger.info(f'Image transformation: {preprocessing_config["transformations"]}')

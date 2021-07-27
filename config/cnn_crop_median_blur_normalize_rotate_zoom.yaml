@@ -1,5 +1,6 @@
 transformations:
-  - [resize, {size: [320,320]}]
+  - [crop, {size: [320,320]}]
+  - [median_blur,{}]
   - [normalize, {}]
   - [rotate, {}]
   - [zoom, {}]
