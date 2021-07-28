@@ -12,7 +12,6 @@ import tensorflow as tf
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from sklearn.utils.class_weight import compute_class_weight
 from src.data.imgproc import tf_read_image
 from src.data.dataset import ImageDataset
 from sklearn.decomposition import IncrementalPCA
@@ -49,16 +48,20 @@ if __name__ == '__main__':
     parser.add_argument("--validsize", type=float, default=0.1, help="Validation dataset size.")
     parser.add_argument("--limit", type=int, default=None, help="Maximum dataset size capped.")
     parser.add_argument("--path", type=str, default=default_dir, help="Base path.")
-    parser.add_argument("--ylabels", nargs='+', default=['Atelectasis', 'Cardiomegaly', 'Consolidation', 'Edema',
-                                                         'Pleural Effusion'],
+    parser.add_argument("--ylabels", nargs='+', default=['No Finding', 'Atelectasis', 'Cardiomegaly', 'Consolidation', 'Edema',
+                                                         'Pleural Effusion', 'Support Devices'],
                         choices=['No Finding', 'Enlarged Cardiomediastinum', 'Cardiomegaly',
                                  'Lung Opacity', 'Lung Lesion', 'Edema', 'Consolidation', 'Pneumonia',
                                  'Atelectasis', 'Pneumothorax', 'Pleural Effusion', 'Pleural Other',
                                  'Fracture', 'Support Devices'], help="Labels to predict.")
     parser.add_argument("--cnn_transfer", type=int, default=1, choices=[0, 1],
                         help="1 to have transfer learning, 0 to train from scratch")
+    parser.add_argument("--frontal_only", type=int, default=0, choices=[0, 1],
+                        help="1 to have frontal view only, 0 to include both frontal/lateral views")
     parser.add_argument("--cnn", type=str, default='False', choices=['True', 'False'],
                         help="'True' if running CNN model.")
+
+    parser.add_argument("--cnn_pretrained", type=str, default=None, help="model file path for pretrained cnn model.")
     parser.add_argument("--cnn_model", type=str, default='MobileNetv2_keras', choices=[m for m in cnn_models],
                         help="Choice of cnn model.")
     parser.add_argument("--cnn_param", type=str, default="config/cnn_model.yaml",
@@ -83,6 +86,7 @@ if __name__ == '__main__':
     model_path = os.path.join(base_path, "models")
     results_path = os.path.join(base_path, "reports", "figures")
     limit = args.limit
+    frontal_only = bool(args.frontal_only)
     batch_size = args.batchsize
     return_labels = args.ylabels
     logger.info(f'==============================================')
@@ -117,14 +121,19 @@ if __name__ == '__main__':
         logger.info(transformations)
     with open(cnn_param_path, 'r') as file:
         cnn_param_config = yaml.full_load(file)
+        logger.info(cnn_param_config)
 
-    test_transformations = {key:val for key,val in transformations if key in allowed_transformations}
-    
+    test_transformations = [[key, val] for key,val in transformations if key in allowed_transformations]
+
     train_dataset = ImageDataset(label_csv_path=train_csv_path, image_path_base=image_path, limit=limit,
-                                 transformations=preprocessing_config["transformations"], map_option=args.map)
+                                 transformations=preprocessing_config["transformations"], map_option=args.map,
+                                 frontal_only=frontal_only)
+    class_weight_list = train_dataset.get_class_weights(return_labels)
+
     if args.validsize is not None:
         valid_dataset = train_dataset.split(validsize=args.validsize, transformations=test_transformations)
-    test_dataset = ImageDataset(label_csv_path=test_csv_path, image_path_base=image_path, transformations=test_transformations)
+    test_dataset = ImageDataset(label_csv_path=test_csv_path, image_path_base=image_path,
+                                frontal_only=frontal_only, transformations=test_transformations)
     logger.info(f'train_dataset: {train_dataset}, {train_csv_path}')
     logger.info(f'test_dataset: {test_dataset}, {test_csv_path}')
     logger.info(f'==============================================')
@@ -135,6 +144,9 @@ if __name__ == '__main__':
     f_datetime = start_time.strftime('%H%M_%d%m%Y')
     f_date_dir = start_time.strftime('%d%m%Y')
     model_fname = os.path.join(model_path, f'{args.file}_{batch_size}_{args.map}_{f_datetime}.sav')
+    cnn_fname = os.path.join(model_path,
+                             f'{modelname}_{args.epochs}_{batch_size}_{args.map}_{f_datetime}.sav')
+
 
     #Pipeline for tensorflow
     if process_cnn:
@@ -171,29 +183,40 @@ if __name__ == '__main__':
 
         output_size = len(return_labels)
         not_transfer = not bool(args.cnn_transfer)
-        model = cnn_models[args.cnn_model](output_size=output_size,
-                                          not_transfer=not_transfer,
-                                          feature_shape=feature_shape,
-                                          image_shape=image_shape)
-        logger.info(model.summary())
 
-        model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=cnn_param_config['learning_rate']),
-                      loss=cnn_param_config['loss'],
-                      metrics=[tf.keras.metrics.AUC(multi_label=True), 'binary_accuracy', tf.keras.metrics.Precision(),
-                               tf.keras.metrics.Recall()])
+        if args.cnn_pretrained is None:
+            logger.info(f'Creating new cnn model: {args.cnn_model}')
+            model = cnn_models[args.cnn_model](output_size=output_size,
+                                              not_transfer=not_transfer,
+                                              feature_shape=feature_shape,
+                                              image_shape=image_shape)
+            logger.info(model.summary())
+            model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=cnn_param_config['learning_rate']),
+                          loss=cnn_param_config['loss'],
+                          metrics=[tf.keras.metrics.AUC(multi_label=True), 'binary_accuracy', tf.keras.metrics.Precision(),
+                                   tf.keras.metrics.Recall()])
 
-        cnn_fname = os.path.join(model_path,
-                                 f'{modelname}_{args.epochs}_{batch_size}_{args.map}_{f_datetime}.sav')
+            model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
+                filepath=cnn_fname,
+                monitor='val_loss',
+                save_freq='epoch',
+                mode='min',
+                save_best_only=True)
 
-        model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
-            filepath=cnn_fname,
-            monitor='val_loss',
-            save_freq='epoch',
-            mode='min',
-            save_best_only=True,)
+            #TODO: fix bug with class weight, not sure how to solve this
+            #https://datascience.stackexchange.com/questions/41698/how-to-apply-class-weight-to-a-multi-output-model
+            history = model.fit(tfds_train, batch_size=batch_size, epochs=args.epochs, validation_data=tfds_valid,
+                                verbose=1, use_multiprocessing=True, workers=8, #class_weight=class_weight_list,
+                                callbacks=[model_checkpoint_callback])
+        else:
+            try:
+                cnn_pretrained_path = os.path.join(base_path, "models", args.cnn_pretrained)
+                logger.info(f'Loading pretrained cnn model: {cnn_pretrained_path}')
+                model = tf.keras.models.load_model(cnn_pretrained_path)
+                logger.info(model.summary())
+            except:
+                logger.error(f'Unable to load pretrained cnn model: {args.cnn_pretrained} !')
 
-        history = model.fit(tfds_train, batch_size=batch_size, epochs=args.epochs, validation_data=tfds_valid,
-                                 verbose=1, use_multiprocessing=True, workers=8, callbacks=[model_checkpoint_callback])
         y_pred_multi = model.predict(tfds_test, verbose=1, use_multiprocessing=True, workers=8)
         #x_features_test, x_image_test, y_test_multi = test_dataset.load(return_labels)
 
@@ -346,4 +369,5 @@ if __name__ == '__main__':
         f.write(f'accuracy (dummy): {accuracy_dummy}\n')
         f.write(f'f1-score: {f1}\n')
         f.write(f'f1-score (dummy): {f1_dummy}\n')
+        f.close()
 

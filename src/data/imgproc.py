@@ -46,7 +46,7 @@ def tf_read_image(x_features, filename, label, channels=1, proc_module='tfimage'
     image = tf.io.decode_jpeg(image_string, channels=channels)
     image = imgproc.transform(image, transformations)
     image = tf.image.grayscale_to_rgb(image)
-    image = tf.reshape(image, [1, 320, 320, 3])
+    image = tf.reshape(image, [1, image.shape[0], image.shape[1], 3])
     x_features = tf.reshape(x_features, [1,x_features.shape[0]])
     label = tf.reshape(label, [1, label.shape[0]])
     return (x_features, image), label

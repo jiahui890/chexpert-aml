@@ -1,4 +1,4 @@
 transformations:
   - [crop, {size: [320,320]}]
-  - [eqhist,{}]
+  - [normalize, {}]
   - [flatten,{}]
