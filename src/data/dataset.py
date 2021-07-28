@@ -73,7 +73,6 @@ class ImageDataset():
         self.df['Path'] = self.df['Path'].apply(lambda x: x.replace('CheXpert-v1.0-small', self.image_path_base))
         self.df['Frontal/Lateral'] = self.df['Frontal/Lateral'].map({'Frontal': 1, 'Lateral': 0})
         #Frontal view only
-        #TODO: Add option to filter out non-frontal view
         if self._frontal_only:
             self.df = self.df[self.df['Frontal/Lateral'] == 1]
         self.df['Sex'] = self.df['Sex'].map({'Male': 1, 'Female': 0, 'Unknown': 1})

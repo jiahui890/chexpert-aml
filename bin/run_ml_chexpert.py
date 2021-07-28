@@ -23,6 +23,10 @@ from sklearn.metrics import roc_auc_score, roc_curve, f1_score, accuracy_score
 import logging
 from datetime import datetime
 
+# For monitoring gpu memory usage
+# gpus = tf.config.experimental.list_physical_devices('GPU')
+# for gpu in gpus:
+#   tf.config.experimental.set_memory_growth(gpu, True)
 logger = logging.getLogger(__file__)
 
 if __name__ == '__main__':
@@ -146,7 +150,6 @@ if __name__ == '__main__':
     cnn_fname = os.path.join(model_path,
                              f'{modelname}_{args.epochs}_{batch_size}_{args.map}_{f_datetime}.sav')
 
-
     #Pipeline for tensorflow
     if process_cnn:
         logger.info(f'Setting dataset for CNN')
@@ -169,6 +172,11 @@ if __name__ == '__main__':
                                     num_parallel_calls=tf.data.AUTOTUNE)
         tfds_test = tfds_test.map(lambda x, y, z: tf_read_image(x, y, z, transformations=test_transformations),
                                   num_parallel_calls=tf.data.AUTOTUNE)
+
+        #required for batching
+        tfds_train = tfds_train.batch(batch_size)
+        tfds_valid = tfds_valid.batch(batch_size)
+        tfds_test = tfds_test.batch(batch_size)
 
         for feat, lab in tfds_train.take(1):
             feature_shape = (feat[0].shape[1],)
@@ -202,8 +210,18 @@ if __name__ == '__main__':
                 mode='min',
                 save_best_only=True)
 
+            #TODO: Find out how to get tensorboard to work in Windows
+            #tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir='logs',
+            #                         histogram_freq=1,
+            #                         write_graph=True,
+            #                         write_images=True,
+            #                         update_freq='batch',
+            #                         profile_batch=2,
+            #                         embeddings_freq=1)
+
             #TODO: fix bug with class weight, not sure how to solve this
             #https://datascience.stackexchange.com/questions/41698/how-to-apply-class-weight-to-a-multi-output-model
+
             history = model.fit(tfds_train, batch_size=batch_size, epochs=args.epochs, validation_data=tfds_valid,
                                 verbose=1, use_multiprocessing=True, workers=8, #class_weight=class_weight_list,
                                 callbacks=[model_checkpoint_callback])
