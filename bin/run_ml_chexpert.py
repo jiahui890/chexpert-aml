@@ -24,6 +24,8 @@ from tensorflow.keras import mixed_precision
 import logging
 from datetime import datetime
 
+#--batchsize 32 --epochs 6 --cnn_model MobileNetv2_keras --cnn_transfer 1 --cnn True --file cnn_standard --preprocessing cnn_standard.yaml
+
 # For monitoring gpu memory usage
 # gpus = tf.config.experimental.list_physical_devices('GPU')
 # for gpu in gpus:
@@ -31,6 +33,7 @@ from datetime import datetime
 
 # Use mixed precision to speed up computation
 mixed_precision.set_global_policy('mixed_float16')
+
 logger = logging.getLogger(__file__)
 
 if __name__ == '__main__':
@@ -117,7 +120,8 @@ if __name__ == '__main__':
         allowed_transformations = ['crop', 'resize', 'eqhist', 'adaptive_eqhist', 'normalize']
     else:
         modelname = args.model
-        allowed_transformations = ['crop', 'resize', 'eqhist', 'adaptive_eqhist', 'median_blur', 'gaussian_blur', 'normalize']
+        allowed_transformations = ['crop', 'resize', 'eqhist', 'flatten', 'adaptive_eqhist',
+                                   'median_blur', 'gaussian_blur', 'normalize']
 
     if args.pca_n_components > batch_size and process_pca:
         raise ValueError(f'Number of pca components {args.pca_n_component} is larger than batch size {batch_size}!')
@@ -141,6 +145,7 @@ if __name__ == '__main__':
         valid_dataset = train_dataset.split(validsize=args.validsize, transformations=test_transformations)
     test_dataset = ImageDataset(label_csv_path=test_csv_path, image_path_base=image_path,
                                 frontal_only=frontal_only, transformations=test_transformations)
+
     logger.info(f'train_dataset: {train_dataset}, {train_csv_path}')
     logger.info(f'test_dataset: {test_dataset}, {test_csv_path}')
     logger.info(f'==============================================')
@@ -186,6 +191,7 @@ if __name__ == '__main__':
         tfds_train = tfds_train.prefetch(tf.data.AUTOTUNE)
         tfds_valid = tfds_valid.prefetch(tf.data.AUTOTUNE)
         tfds_test = tfds_test.prefetch(tf.data.AUTOTUNE)
+
 
         for feat, lab in tfds_train.take(1):
             feature_shape = (feat[0].shape[1],)
@@ -233,8 +239,8 @@ if __name__ == '__main__':
             #https://datascience.stackexchange.com/questions/41698/how-to-apply-class-weight-to-a-multi-output-model
 
             history = model.fit(tfds_train, batch_size=batch_size, epochs=args.epochs, validation_data=tfds_valid,
-                                verbose=1, use_multiprocessing=True, workers=8,) #class_weight=class_weight_list,
-                                #callbacks=[model_checkpoint_callback])
+                                verbose=1, use_multiprocessing=True, workers=8, #class_weight=class_weight_list,
+                                callbacks=[model_checkpoint_callback])
         else:
             try:
                 cnn_pretrained_path = os.path.join(base_path, "models", args.cnn_pretrained)
