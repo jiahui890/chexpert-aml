@@ -100,7 +100,7 @@ class TfImageProcessing(imgproc.ImageProcessing):
     # Normalize
     def normalize(self, image):
         # This will convert to float values in [0, 1]
-        return image/ 255.0
+        return image / 255.0
 
     def eqhist(self, image):
         return tfa.image.equalize(image)

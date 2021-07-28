@@ -20,6 +20,7 @@ from sklearn.multioutput import MultiOutputClassifier
 from src.models.sklearn_models import models
 from src.models.tensorflow_models import cnn_models
 from sklearn.metrics import roc_auc_score, roc_curve, f1_score, accuracy_score
+from tensorflow.keras import mixed_precision
 import logging
 from datetime import datetime
 
@@ -27,6 +28,9 @@ from datetime import datetime
 # gpus = tf.config.experimental.list_physical_devices('GPU')
 # for gpu in gpus:
 #   tf.config.experimental.set_memory_growth(gpu, True)
+
+# Use mixed precision to speed up computation
+mixed_precision.set_global_policy('mixed_float16')
 logger = logging.getLogger(__file__)
 
 if __name__ == '__main__':
@@ -178,13 +182,19 @@ if __name__ == '__main__':
         tfds_valid = tfds_valid.batch(batch_size)
         tfds_test = tfds_test.batch(batch_size)
 
+        #prefetch
+        tfds_train = tfds_train.prefetch(tf.data.AUTOTUNE)
+        tfds_valid = tfds_valid.prefetch(tf.data.AUTOTUNE)
+        tfds_test = tfds_test.prefetch(tf.data.AUTOTUNE)
+
         for feat, lab in tfds_train.take(1):
             feature_shape = (feat[0].shape[1],)
             image_shape = (feat[1].shape[1], feat[1].shape[2], feat[1].shape[3])
 
         y_test_multi = []
         for x, test_label in tfds_test:
-            y_test_multi.append(test_label.numpy()[0])
+            for item in test_label:
+                y_test_multi.append(item.numpy())
 
         y_test_multi = np.array(y_test_multi)
 
@@ -223,8 +233,8 @@ if __name__ == '__main__':
             #https://datascience.stackexchange.com/questions/41698/how-to-apply-class-weight-to-a-multi-output-model
 
             history = model.fit(tfds_train, batch_size=batch_size, epochs=args.epochs, validation_data=tfds_valid,
-                                verbose=1, use_multiprocessing=True, workers=8, #class_weight=class_weight_list,
-                                callbacks=[model_checkpoint_callback])
+                                verbose=1, use_multiprocessing=True, workers=8,) #class_weight=class_weight_list,
+                                #callbacks=[model_checkpoint_callback])
         else:
             try:
                 cnn_pretrained_path = os.path.join(base_path, "models", args.cnn_pretrained)
