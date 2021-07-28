@@ -33,7 +33,7 @@ def parse_args():
     parser.add_argument(
         "--pca_pretrained",
         type=str,
-        default='IncrementalPCA_128_500_Random_0350_26072021.sav',
+        default='IncrementalPCA_200_500_Random_2145_27072021.sav',
         help=".sav file path for pretrained pca model.")
     parser.add_argument("--preprocessing",
                         type=str,
@@ -73,13 +73,17 @@ def parse_args():
                         help="Labels to predict.")
     parser.add_argument("--model",
                         type=str,
-                        default='SGDClassifier',
+                        default='RandomForestClassifier',
                         choices=[m for m in models],
                         help="Choice of model.")
     parser.add_argument("--n_jobs",
                         type=int,
                         default=-1,
                         help="Number of cores for multi-processing.")
+    parser.add_argument("--random",
+                        type=bool,
+                        default=False,
+                        help="Whether to use RandomizedSearchCV.")
 
     args = parser.parse_args()
     return args
@@ -118,15 +122,23 @@ def load_dataset(args):
     return train_dataset
 
 
-def search_cv(model, param_grid, X, y, scoring, n_jobs):
-    grid_search = GridSearchCV(model,
-                               param_grid,
-                               cv=5,
-                               scoring=scoring,
-                               return_train_score=True,
-                               n_jobs=n_jobs)
-    grid_search.fit(X, y)
-    return grid_search
+def search_cv(random, model, param_grid, X, y, scoring, n_jobs):
+    if random:
+        search = RandomizedSearchCV(model,
+                                    param_grid,
+                                    cv=5,
+                                    scoring=scoring,
+                                    return_train_score=True,
+                                    n_jobs=n_jobs)
+    else:
+        search = GridSearchCV(model,
+                              param_grid,
+                              cv=5,
+                              scoring=scoring,
+                              return_train_score=True,
+                              n_jobs=n_jobs)
+    search.fit(X, y)
+    return search
 
 
 def main():
@@ -154,6 +166,7 @@ def main():
     logger.info(f'model: {base_model}')
     param_grid = param_grids[args.model]
     logger.info(f'param_grid: {param_grid}')
+    logger.info(f'RandomizedSearchCV: {args.random}')
 
     x_features_train, x_image_train, y_train_multi = train_dataset.load(
         return_labels)
@@ -170,18 +183,15 @@ def main():
         logger.info(f'==============================================')
         logger.info(f'Run search_cv for label: {label}')
         scoring = 'roc_auc'
-        search = search_cv(base_model,
+        search = search_cv(args.random, base_model,
                            param_grid,
                            X_train,
                            y_train,
                            scoring,
                            n_jobs=args.n_jobs)
+        logger.info(f'Best score for label {label} is: {search.best_score_}')
         logger.info(
-            f'Best score for label {label} is: {search.best_score_}'
-        )
-        logger.info(
-            f'Best params for label {label} are: {search.best_params_}'
-        )
+            f'Best params for label {label} are: {search.best_params_}')
         # cvres = pd.DataFrame(search.cv_results_)
         # print(cvres)
 
