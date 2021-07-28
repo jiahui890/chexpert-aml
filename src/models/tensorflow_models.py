@@ -3,8 +3,8 @@ from tensorflow import keras
 from keras.models import Model
 from keras.layers import Activation, Add, \
     AveragePooling2D, BatchNormalization, Conv2D, \
-    Dense, Dropout, Flatten, GlobalMaxPooling2D, Input, \
-    Lambda, MaxPooling2D, MaxPool2D, ZeroPadding2D
+    Dense, Dropout, Flatten, GlobalMaxPooling2D, GlobalAveragePooling2D, \
+    Input, Lambda, MaxPooling2D, MaxPool2D, ZeroPadding2D
 from keras.initializers import glorot_uniform
 
 # define function to create identity blocks
@@ -192,7 +192,7 @@ def MobileNetv2_keras(output_size, not_transfer=False, feature_shape=(4,), image
     # create model class
     model = tf.keras.Model(inputs=[inputs_feature, inputs_image], 
                            outputs=x,
-                           'MobileNetv2_keras')
+                           name = 'MobileNetv2_keras')
 
     return model
 
@@ -272,6 +272,6 @@ def ResNet152_keras(output_size, not_transfer=False, feature_shape=(4,), image_s
 cnn_models = {
     "ResNet152_new": ResNet152_new,
     "MobileNetv2_keras": MobileNetv2_keras,
-    "Densenet121_keras": DenseNet121,
-    "ResNet152_keras": ResNet152_new
+    "Densenet121_keras": DenseNet121_keras,
+    "ResNet152_keras": ResNet152_keras
 }

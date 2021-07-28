@@ -59,7 +59,7 @@ if __name__ == '__main__':
                         help="1 to have transfer learning, 0 to train from scratch")
     parser.add_argument("--cnn", type=str, default='False', choices=['True', 'False'],
                         help="'True' if running CNN model.")
-    parser.add_argument("--cnn_model", type=str, default='MobileNetv2_Songhan', choices=[m for m in cnn_models],
+    parser.add_argument("--cnn_model", type=str, default='MobileNetv2_keras', choices=[m for m in cnn_models],
                         help="Choice of cnn model.")
     parser.add_argument("--cnn_param", type=str, default="config/cnn_model.yaml",
                         help=".yaml config file for model hyperparameter")
