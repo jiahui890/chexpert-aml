@@ -85,6 +85,7 @@ if __name__ == '__main__':
     model_path = os.path.join(base_path, "models")
     results_path = os.path.join(base_path, "reports", "figures")
     limit = args.limit
+    frontal_only = bool(args.frontal_only)
     batch_size = args.batchsize
     return_labels = args.ylabels
     logger.info(f'==============================================')
@@ -124,12 +125,14 @@ if __name__ == '__main__':
     test_transformations = [[key, val] for key,val in transformations if key in allowed_transformations]
 
     train_dataset = ImageDataset(label_csv_path=train_csv_path, image_path_base=image_path, limit=limit,
-                                 transformations=preprocessing_config["transformations"], map_option=args.map)
+                                 transformations=preprocessing_config["transformations"], map_option=args.map,
+                                 frontal_only=frontal_only)
     class_weight_list = train_dataset.get_class_weights(return_labels)
 
     if args.validsize is not None:
         valid_dataset = train_dataset.split(validsize=args.validsize, transformations=test_transformations)
-    test_dataset = ImageDataset(label_csv_path=test_csv_path, image_path_base=image_path, transformations=test_transformations)
+    test_dataset = ImageDataset(label_csv_path=test_csv_path, image_path_base=image_path,
+                                frontal_only=frontal_only, transformations=test_transformations)
     logger.info(f'train_dataset: {train_dataset}, {train_csv_path}')
     logger.info(f'test_dataset: {test_dataset}, {test_csv_path}')
     logger.info(f'==============================================')
@@ -191,6 +194,7 @@ if __name__ == '__main__':
                           loss=cnn_param_config['loss'],
                           metrics=[tf.keras.metrics.AUC(multi_label=True), 'binary_accuracy', tf.keras.metrics.Precision(),
                                    tf.keras.metrics.Recall()])
+
             model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
                 filepath=cnn_fname,
                 monitor='val_loss',
@@ -201,7 +205,7 @@ if __name__ == '__main__':
             #TODO: fix bug with class weight, not sure how to solve this
             #https://datascience.stackexchange.com/questions/41698/how-to-apply-class-weight-to-a-multi-output-model
             history = model.fit(tfds_train, batch_size=batch_size, epochs=args.epochs, validation_data=tfds_valid,
-                                verbose=1, use_multiprocessing=True, workers=8, #class_weight=class_weight_list
+                                verbose=1, use_multiprocessing=True, workers=8, #class_weight=class_weight_list,
                                 callbacks=[model_checkpoint_callback])
         else:
             try:
