@@ -32,15 +32,7 @@ def rf_grid():
 
 def sgd_grid():
     return {
-        'alpha': [1e-4, 1e-3, 1e-2, 1e-1, 1e0, 1e1, 1e2, 1e3],  # learning rate
-        'loss': ['log'],  # logistic regression,
-        'penalty': ['l1', 'l2', 'elasticnet'],
-    }
-
-
-def sgd_grid2():
-    return {
-        'alpha': [1e-4, 1e-3, 1e-2, 1e-1, 1e0, 1e1, 1e2, 1e3],  # learning rate
+        'alpha': [1e-4, 1e-3, 1e-2, 1e-1, 1e0, 1e1, 1e2, 1e3],
         'loss': ['log'],  # logistic regression,
         'penalty': ['l1', 'l2', 'elasticnet'],
         'class_weight': [None, 'balanced']
@@ -55,7 +47,7 @@ models = {
     "RandomForestClassifier":
     RandomForestClassifier(random_state=42),
     "SGDClassifier":
-    SGDClassifier(loss='log', random_state=42),
+    SGDClassifier(loss='log', random_state=42, penalty='l1', alpha=0.001),
     "SGDClassifier_Elastic":
     SGDClassifier(loss='huber',
                   penalty='elasticnet',

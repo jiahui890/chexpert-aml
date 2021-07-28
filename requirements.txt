@@ -12,5 +12,6 @@ matplotlib==3.4.2
 pandas==1.2.5
 scikit-learn==0.24.2
 scikit-image==0.18.1
-torch==1.9.0
 pyyaml==5.3.1
+tensorflow==2.5.0
+tensorflow_addons==0.13.0
