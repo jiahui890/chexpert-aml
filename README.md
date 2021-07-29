@@ -23,7 +23,7 @@ To run the ml jobs, simply run the following
 usage: python /bin/run_ml_chexpert.py [-h] [--pca {True,False}] [--pca_pretrained PCA_PRETRAINED] [--pca_n_components PCA_N_COMPONENTS] [--preprocessing PREPROCESSING] [--file FILE] [--map {U-zero,U-one,Random}] [--batchsize BATCHSIZE] [--validsize VALIDSIZE] [--limit LIMIT] [--path PATH]
                           [--ylabels {No Finding,Enlarged Cardiomediastinum,Cardiomegaly,Lung Opacity,Lung Lesion,Edema,Consolidation,Pneumonia,Atelectasis,Pneumothorax,Pleural Effusion,Pleural Other,Fracture,Support Devices} [{No Finding,Enlarged Cardiomediastinum,Cardiomegaly,Lung Opacity,Lung Lesion,Edema,Co
 nsolidation,Pneumonia,Atelectasis,Pneumothorax,Pleural Effusion,Pleural Other,Fracture,Support Devices} ...]]
-                          [--cnn_transfer {0,1}] [--cnn {True,False}] [--cnn_model {ResNet152_new,MobileNetv2_keras,DenseNet121_keras,ResNet152_keras}] [--cnn_param CNN_PARAM] [--model {MultinomialNB,GaussianNB,SGDClassifier,SGDClassifier_Elastic}] [--model_pretrained MODEL_PRETRAINED] [--n_jobs N_JOBS] [--epochs EPOCHS]
+                          [--cnn_transfer {0,1}] [--cnn {True,False}] [--cnn_model {ResNet152_new,DenseNet121_new,MobileNetv2_keras,DenseNet121_keras,ResNet152_keras}] [--cnn_param CNN_PARAM] [--model {MultinomialNB,GaussianNB,SGDClassifier,SGDClassifier_Elastic}] [--model_pretrained MODEL_PRETRAINED] [--n_jobs N_JOBS] [--epochs EPOCHS]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -48,7 +48,7 @@ lectasis,Pneumothorax,Pleural Effusion,Pleural Other,Fracture,Support Devices} .
                         Labels to predict.
   --cnn_transfer {0,1}  1 to have transfer learning, 0 to train from scratch
   --cnn {True,False}    'True' if running CNN model.
-  --cnn_model {ResNet152_new,MobileNetv2_keras,DenseNet121_keras,ResNet152_keras}
+  --cnn_model {ResNet152_new,DenseNet121_new,MobileNetv2_keras,DenseNet121_keras,ResNet152_keras}
                         Choice of cnn model. '_new' is a handcrafted ResNet152 architecture for single channel image. '_keras' models use pre-trained models from keras.
   --cnn_param CNN_PARAM
                         .yaml config file for model hyperparameter
