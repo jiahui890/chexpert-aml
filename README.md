@@ -100,7 +100,7 @@ and epochs = 5
 --batchsize 16 
 --limit 10000 
 --epochs 5
---cnn_model MobileNetv2_Songhan
+--cnn_model MobileNetv2_keras
 --cnn_transfer 1
 --cnn True
 --file cnn_default`
