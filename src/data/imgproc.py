@@ -34,7 +34,8 @@ def get_proc_class(module_name):
     else:
         raise Exception(f'Unkown module name {module_name} for image process class')
 
-def tf_read_image(x_features, filename, label, channels=1, proc_module='tfimage',
+def tf_read_image(x_features, filename, label, cnn_model,
+                  channels=1, proc_module='tfimage',
                   transformations=[
                       ('resize', {'size': (320, 320)},
                        ('normalize', {}))
@@ -49,7 +50,10 @@ def tf_read_image(x_features, filename, label, channels=1, proc_module='tfimage'
     # image = tf.reshape(image, [1, image.shape[0], image.shape[1], 3])
     # x_features = tf.reshape(x_features, [1,x_features.shape[0]])
     # label = tf.reshape(label, [1, label.shape[0]])
-    image = tf.reshape(image, [image.shape[0], image.shape[1], 3])
+    if cnn_model in ["MobileNetv2_keras",
+                     "DenseNet121_keras"
+                     "ResNet152_keras"]:
+        image = tf.reshape(image, [image.shape[0], image.shape[1], 3])
     x_features = tf.reshape(x_features, [x_features.shape[0]])
     label = tf.reshape(label, [label.shape[0]])
     return (x_features, image), label
