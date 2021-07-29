@@ -46,14 +46,12 @@ def tf_read_image(x_features, filename, label, cnn_model,
     #Don't use tf.image.decode_image, or the output shape will be undefined
     image = tf.io.decode_jpeg(image_string, channels=channels)
     image = imgproc.transform(image, transformations)
-    image = tf.image.grayscale_to_rgb(image)
-    # image = tf.reshape(image, [1, image.shape[0], image.shape[1], 3])
-    # x_features = tf.reshape(x_features, [1,x_features.shape[0]])
-    # label = tf.reshape(label, [1, label.shape[0]])
+
     if cnn_model in ["MobileNetv2_keras",
-                     "DenseNet121_keras"
+                     "DenseNet121_keras",
                      "ResNet152_keras"]:
-        image = tf.reshape(image, [image.shape[0], image.shape[1], 3])
+        image = tf.image.grayscale_to_rgb(image)
+        #image = tf.reshape(image, [image.shape[0], image.shape[1], 3])
     x_features = tf.reshape(x_features, [x_features.shape[0]])
     label = tf.reshape(label, [label.shape[0]])
     return (x_features, image), label
