@@ -249,7 +249,7 @@ def DenseNet121_new(output_size,
     # create model class
     model = tf.keras.Model(inputs=[inputs_feature, inputs_image], 
                            outputs=x,
-                           name = 'DenseNet121_keras')
+                           name = 'DenseNet121_new')
 
     return model
 
