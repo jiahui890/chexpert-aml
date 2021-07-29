@@ -21,23 +21,23 @@ def identity_block(X, f, filters, stage, block):
     X_shortcut = X
     
     #run the convolutions
-    X = Conv2D(filters=F1, kernel_size=(1, 1), strides=(1, 1), padding='valid', name=conv_name_base + '2a',
+    X = tf.keras.layers.Conv2D(filters=F1, kernel_size=(1, 1), strides=(1, 1), padding='valid', name=conv_name_base + '2a',
                kernel_initializer=glorot_uniform(seed=0))(X)
-    X = BatchNormalization(axis=3, name=bn_name_base + '2a')(X)
-    X = Activation('relu')(X)
+    X = tf.keras.layers.BatchNormalization(axis=3, name=bn_name_base + '2a')(X)
+    X = tf.keras.layers.Activation('relu')(X)
 
-    X = Conv2D(filters=F2, kernel_size=(f, f), strides=(1, 1), padding='same', name=conv_name_base + '2b',
+    X = tf.keras.layers.Conv2D(filters=F2, kernel_size=(f, f), strides=(1, 1), padding='same', name=conv_name_base + '2b',
                kernel_initializer=glorot_uniform(seed=0))(X)
-    X = BatchNormalization(axis=3, name=bn_name_base + '2b')(X)
-    X = Activation('relu')(X)
+    X = tf.keras.layers.BatchNormalization(axis=3, name=bn_name_base + '2b')(X)
+    X = tf.keras.layers.Activation('relu')(X)
 
-    X = Conv2D(filters=F3, kernel_size=(1, 1), strides=(1, 1), padding='valid', name=conv_name_base + '2c',
+    X = tf.keras.layers.Conv2D(filters=F3, kernel_size=(1, 1), strides=(1, 1), padding='valid', name=conv_name_base + '2c',
                kernel_initializer=glorot_uniform(seed=0))(X)
-    X = BatchNormalization(axis=3, name=bn_name_base + '2c')(X)
+    X = tf.keras.layers.BatchNormalization(axis=3, name=bn_name_base + '2c')(X)
     
     #element wise addition directly from the input (hence identity block)
-    X = Add()([X, X_shortcut])  # SKIP Connection
-    X = Activation('relu')(X)
+    X = tf.keras.layers.Add()([X, X_shortcut])  # SKIP Connection
+    X = tf.keras.layers.Activation('relu')(X)
 
     return X
 
@@ -54,27 +54,27 @@ def convolutional_block(X, f, filters, stage, block, s=2):
     X_shortcut = X
     
     #run the convolutions
-    X = Conv2D(filters=F1, kernel_size=(1, 1), strides=(s, s), padding='valid', name=conv_name_base + '2a',
-               kernel_initializer=glorot_uniform(seed=0))(X)
-    X = BatchNormalization(axis=3, name=bn_name_base + '2a')(X)
-    X = Activation('relu')(X)
+    X = tf.keras.layers.Conv2D(filters=F1, kernel_size=(1, 1), strides=(s, s), padding='valid', name=conv_name_base + '2a',
+                               kernel_initializer=glorot_uniform(seed=0))(X)
+    X = tf.keras.layers.BatchNormalization(axis=3, name=bn_name_base + '2a')(X)
+    X = tf.keras.layers.Activation('relu')(X)
 
-    X = Conv2D(filters=F2, kernel_size=(f, f), strides=(1, 1), padding='same', name=conv_name_base + '2b',
-               kernel_initializer=glorot_uniform(seed=0))(X)
-    X = BatchNormalization(axis=3, name=bn_name_base + '2b')(X)
-    X = Activation('relu')(X)
+    X = tf.keras.layers.Conv2D(filters=F2, kernel_size=(f, f), strides=(1, 1), padding='same', name=conv_name_base + '2b',
+                               kernel_initializer=glorot_uniform(seed=0))(X)
+    X = tf.keras.layers.BatchNormalization(axis=3, name=bn_name_base + '2b')(X)
+    X = tf.keras.layers.Activation('relu')(X)
 
-    X = Conv2D(filters=F3, kernel_size=(1, 1), strides=(1, 1), padding='valid', name=conv_name_base + '2c',
-               kernel_initializer=glorot_uniform(seed=0))(X)
-    X = BatchNormalization(axis=3, name=bn_name_base + '2c')(X)
+    X = tf.keras.layers.Conv2D(filters=F3, kernel_size=(1, 1), strides=(1, 1), padding='valid', name=conv_name_base + '2c',
+                               kernel_initializer=glorot_uniform(seed=0))(X)
+    X = tf.keras.layers.BatchNormalization(axis=3, name=bn_name_base + '2c')(X)
     
     # shortcut branch is a single conv (hence convolution block)
-    X_shortcut = Conv2D(filters=F3, kernel_size=(1, 1), strides=(s, s), padding='valid', name=conv_name_base + '1',
-                        kernel_initializer=glorot_uniform(seed=0))(X_shortcut)
-    X_shortcut = BatchNormalization(axis=3, name=bn_name_base + '1')(X_shortcut)
+    X_shortcut = tf.keras.layers.Conv2D(filters=F3, kernel_size=(1, 1), strides=(s, s), padding='valid', name=conv_name_base + '1',
+                                        kernel_initializer=glorot_uniform(seed=0))(X_shortcut)
+    X_shortcut = tf.keras.layers.BatchNormalization(axis=3, name=bn_name_base + '1')(X_shortcut)
 
-    X = Add()([X, X_shortcut])
-    X = Activation('relu')(X)
+    X = tf.keras.layers.Add()([X, X_shortcut])
+    X = tf.keras.layers.Activation('relu')(X)
 
     return X
 
@@ -83,18 +83,18 @@ def ResNet152_new(output_size,
                   feature_shape=(4,), 
                   image_shape=(320,320, 1)):
 
-    inputs_feature = Input(shape=feature_shape)
-    inputs_image = Input(shape=image_shape)
+    inputs_feature = tf.keras.layers.Input(shape=feature_shape)
+    inputs_image = tf.keras.layers.Input(shape=image_shape)
     
     # define branch 1
     # define resnet layers
-    x1 = ZeroPadding2D((3, 3))(inputs_image)
+    x1 = tf.keras.layers.ZeroPadding2D((3, 3))(inputs_image)
     
     #first conv layer
-    x1 = Conv2D(64, (7, 7), strides=(2, 2), name='conv1', kernel_initializer=glorot_uniform(seed=0))(x1)
-    x1 = BatchNormalization(axis=3, name='bn_conv1')(x1)
-    x1 = Activation('relu')(x1)
-    x1 = MaxPooling2D((3, 3), strides=(2, 2))(x1)
+    x1 = tf.keras.layers.Conv2D(64, (7, 7), strides=(2, 2), name='conv1', kernel_initializer=glorot_uniform(seed=0))(x1)
+    x1 = tf.keras.layers.BatchNormalization(axis=3, name='bn_conv1')(x1)
+    x1 = tf.keras.layers.Activation('relu')(x1)
+    x1 = tf.keras.layers.MaxPooling2D((3, 3), strides=(2, 2))(x1)
 
     #conv2_x (3 blocks)
     x1 = convolutional_block(x1, 3, [64, 64, 256], stage=2, block='a', s=2)
@@ -153,34 +153,34 @@ def ResNet152_new(output_size,
     x1 = identity_block(x1, 3, [512, 512, 2048], stage=5, block='b')
     x1 = identity_block(x1, 3, [512, 512, 2048], stage=5, block='c')
 
-    x1 = AveragePooling2D(pool_size=(2, 2), padding='same')(x1)
+    x1 = tf.keras.layers.AveragePooling2D(pool_size=(2, 2), padding='same')(x1)
 
     # create classification layers, first flatten the convolution output
-    x1 = Flatten()(x1)
+    x1 = tf.keras.layers.Flatten()(x1)
 
     #build second branch for non-image features
-    x2 = Dense(10)(inputs_feature)
-    x2 = Activation("relu")(x2)
-    x2 = BatchNormalization()(x2)
+    x2 = tf.keras.layers.Dense(10)(inputs_feature)
+    x2 = tf.keras.layers.Activation("relu")(x2)
+    x2 = tf.keras.layers.BatchNormalization()(x2)
     
     #conatenate the features
-    x = Concatenate()([x1, x2])
-    x = Activation('relu')(x)
+    x = tf.keras.layers.Concatenate()([x1, x2])
+    x = tf.keras.layers.Activation('relu')(x)
     
     # create hidden layers for classification
-    x = Dense(128)(x)
-    x = Activation("relu")(x)
-    x = BatchNormalization()(x)
-    x = Dropout(0.5)(x)
+    x = tf.keras.layers.Dense(128)(x)
+    x = tf.keras.layers.Activation("relu")(x)
+    x = tf.keras.layers.BatchNormalization()(x)
+    x = tf.keras.layers.Dropout(0.5)(x)
 
     # create output layer
-    x = Dense(output_size)(x)
-    x = Activation("sigmoid", name='predicted_observations')(x)  # sigmoid and not softmax because we are doing multi-label
+    x = tf.keras.layers.Dense(output_size)(x)
+    x = tf.keras.layers.Activation("sigmoid", name='predicted_observations')(x)  # sigmoid and not softmax because we are doing multi-label
 
     
-    model = Model(inputs=[inputs_feature, inputs_image],
-                  outputs=x,
-                  name='ResNet152_new')
+    model = tf.keras.Model(inputs=[inputs_feature, inputs_image],
+                                  outputs=x,
+                                  name='ResNet152_new')
 
     return model
 
@@ -190,16 +190,16 @@ def DenseNet121_new(output_size,
                     image_shape=(320,320, 1),
                     filters = 32):
 
-    inputs_feature = Input(shape=feature_shape)
-    inputs_image = Input(shape=image_shape)
+    inputs_feature = tf.keras.layers.Input(shape=feature_shape)
+    inputs_image = tf.keras.layers.Input(shape=image_shape)
     
     #utility functions for densenet
     #batch norm + relu + conv
     def bn_rl_conv(x,filters,kernel=1,strides=1):
 
-        x = BatchNormalization()(x)
-        x = Activation("relu")(x)
-        x = Conv2D(filters, kernel, strides=strides,padding = 'same')(x)
+        x = tf.keras.layers.BatchNormalization()(x)
+        x = tf.keras.layers.Activation("relu")(x)
+        x = tf.keras.layers.Conv2D(filters, kernel, strides=strides,padding = 'same')(x)
         return x
     
     def dense_block(x, repetition):
@@ -207,49 +207,49 @@ def DenseNet121_new(output_size,
         for _ in range(repetition):
             y = bn_rl_conv(x, 4*filters)
             y = bn_rl_conv(y, filters, 3)
-            x = Concatenate()([y,x])
+            x = tf.keras.layers.Concatenate()([y,x])
         return x
         
     def transition_layer(x):
         
         x = bn_rl_conv(x, keras.backend.int_shape(x)[-1] //2 )
-        x = AveragePooling2D(2, strides = 2, padding = 'same')(x)
+        x = tf.keras.layers.AveragePooling2D(2, strides = 2, padding = 'same')(x)
         return x
 
     #build branch 1 for img data
-    x1 = Conv2D(64, 7, strides = 2, padding = 'same')(inputs_image)
-    x1 = MaxPool2D(3, strides = 2, padding = 'same')(x1)
+    x1 = tf.keras.layers.Conv2D(64, 7, strides = 2, padding = 'same')(inputs_image)
+    x1 = tf.keras.layers.MaxPool2D(3, strides = 2, padding = 'same')(x1)
     
     for repetition in [6,12,24,16]:   
         d = dense_block(x1, repetition)
         x1 = transition_layer(d)
     
-    x1 = GlobalAveragePooling2D()(d)
-    x1 = Flatten()(x1)
+    x1 = tf.keras.layers.GlobalAveragePooling2D()(d)
+    x1 = tf.keras.layers.Flatten()(x1)
     
     #branch 2 for the non-image features
-    x2 = Dense(10)(inputs_feature)
-    x2 = Activation("relu")(x2)
-    x2 = Dropout(0.5)(x2)
+    x2 = tf.keras.layers.Dense(10)(inputs_feature)
+    x2 = tf.keras.layers.Activation("relu")(x2)
+    x2 = tf.keras.layers.Dropout(0.5)(x2)
     
     #conatenate the features
     x = tf.keras.layers.Concatenate()([x1, x2])    
     x = tf.keras.layers.Activation('relu')(x)
     
     # create hidden layers for classification
-    x = Dense(128)(x)
-    x = Activation("relu")(x)
-    x = BatchNormalization()(x)
-    x = Dropout(0.5)(x)
+    x = tf.keras.layers.Dense(128)(x)
+    x = tf.keras.layers.Activation("relu")(x)
+    x = tf.keras.layers.BatchNormalization()(x)
+    x = tf.keras.layers.Dropout(0.5)(x)
 
     # create output layer
-    x = Dense(output_size)(x)
-    x = Activation("sigmoid", name='predicted_observations')(x)
+    x = tf.keras.layers.Dense(output_size)(x)
+    x = tf.keras.layers.Activation("sigmoid", name='predicted_observations')(x)
 
     # create model class
-    model = Model(inputs=[inputs_feature, inputs_image], 
+    model = tf.keras.Model(inputs=[inputs_feature, inputs_image], 
                            outputs=x,
-                           name = 'DenseNet121_keras')
+                           name = 'DenseNet121_new')
 
     return model
 
@@ -269,12 +269,12 @@ def MobileNetv2_keras(output_size,
     
     x1 = cnn_base(inputs_image, training=False)
     x1 = tf.keras.layers.GlobalAveragePooling2D()(x1)
-    x1 = Flatten()(x1)
+    x1 = tf.keras.layers.Flatten()(x1)
     
     #branch 2 for the non-image features
-    x2 = Dense(10)(inputs_feature)
-    x2 = Activation("relu")(x2)
-    x2 = Dropout(0.5)(x2)
+    x2 = tf.keras.layers.Dense(10)(inputs_feature)
+    x2 = tf.keras.layers.Activation("relu")(x2)
+    x2 = tf.keras.layers.Dropout(0.5)(x2)
     
     #conatenate the features
     x = tf.keras.layers.Concatenate()([x1, x2])
@@ -307,13 +307,13 @@ def DenseNet121_keras(output_size,
     
     #use densenet for the img
     x1 = cnn_base(inputs_image, training=False)
-    x1 = GlobalAveragePooling2D()(x1)
-    x1 = Flatten()(x1)
+    x1 = tf.keras.layers.GlobalAveragePooling2D()(x1)
+    x1 = tf.keras.layers.Flatten()(x1)
     
     #branch 2 for the non-image features
-    x2 = Dense(10)(inputs_feature)
-    x2 = Activation("relu")(x2)
-    x2 = Dropout(0.5)(x2)
+    x2 = tf.keras.layers.Dense(10)(inputs_feature)
+    x2 = tf.keras.layers.Activation("relu")(x2)
+    x2 = tf.keras.layers.Dropout(0.5)(x2)
     
     #conatenate the features
     x = tf.keras.layers.Concatenate()([x1, x2])
@@ -346,13 +346,13 @@ def ResNet152_keras(output_size,
     
     #use densenet for the img
     x1 = cnn_base(inputs_image, training=False)
-    x1 = GlobalAveragePooling2D()(x1)
-    x1 = Flatten()(x1)
+    x1 = tf.keras.layers.GlobalAveragePooling2D()(x1)
+    x1 = tf.keras.layers.Flatten()(x1)
     
     #branch 2 for the non-image features
-    x2 = Dense(10)(inputs_feature)
-    x2 = Activation("relu")(x2)
-    x2 = Dropout(0.5)(x2)
+    x2 = tf.keras.layers.Dense(10)(inputs_feature)
+    x2 = tf.keras.layers.Activation("relu")(x2)
+    x2 = tf.keras.layers.Dropout(0.5)(x2)
     
     #concatenate the branches
     x = tf.keras.layers.Concatenate()([x1, x2])
