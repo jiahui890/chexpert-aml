@@ -23,6 +23,8 @@ from sklearn.metrics import roc_auc_score, roc_curve, f1_score, accuracy_score
 from tensorflow.keras import mixed_precision
 import logging
 from datetime import datetime
+from tensorflow.keras import mixed_precision
+mixed_precision.set_global_policy('mixed_float16')
 
 #--batchsize 32 --epochs 6 --cnn_model MobileNetv2_keras --cnn_transfer 1 --cnn True --file cnn_standard --preprocessing cnn_standard.yaml
 
@@ -176,7 +178,7 @@ if __name__ == '__main__':
                                                         test_dataset.df['Path'].values,
                                                         test_dataset.df[return_labels].values))
 
-        tfds_train = tfds_train.map(lambda x, y, z: tf_read_image(x, y, z, transformations=transformations),
+        tfds_train = tfds_train.map(lambda x, y, z: tf_read_image(x, y, z, transformations=test_transformations),
                                     num_parallel_calls=tf.data.AUTOTUNE)
         tfds_valid = tfds_valid.map(lambda x, y, z: tf_read_image(x, y, z, transformations=test_transformations),
                                     num_parallel_calls=tf.data.AUTOTUNE)
