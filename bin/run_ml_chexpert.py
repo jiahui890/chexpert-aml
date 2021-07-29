@@ -24,8 +24,6 @@ from tensorflow.keras import mixed_precision
 import logging
 from datetime import datetime
 
-#--batchsize 32 --epochs 6 --cnn_model MobileNetv2_keras --cnn_transfer 1 --cnn True --file cnn_standard --preprocessing cnn_standard.yaml
-
 # For monitoring gpu memory usage
 # gpus = tf.config.experimental.list_physical_devices('GPU')
 # for gpu in gpus:
@@ -140,6 +138,12 @@ if __name__ == '__main__':
                                  transformations=preprocessing_config["transformations"], map_option=args.map,
                                  frontal_only=frontal_only)
     class_weight_list = train_dataset.get_class_weights(return_labels)
+    classes = np.array([[0, 1] for y in return_labels]).astype(np.float32)
+    ratio = []
+    for k in class_weight_list.keys():
+        ratio.append(class_weight_list[k][1]/class_weight_list[k][0])
+    print (np.mean(ratio), ratio)
+    class_weight = {0:1, 1: np.mean(ratio)}
 
     if args.validsize is not None:
         valid_dataset = train_dataset.split(validsize=args.validsize, transformations=test_transformations)
@@ -152,12 +156,13 @@ if __name__ == '__main__':
 
     num_batch = train_dataset._num_image // batch_size + bool(train_dataset._num_image % batch_size)  # ceiling division
     start_time = datetime.now()
-    classes = np.array([[0, 1] for y in return_labels]).astype(np.float32)
     f_datetime = start_time.strftime('%H%M_%d%m%Y')
     f_date_dir = start_time.strftime('%d%m%Y')
     model_fname = os.path.join(model_path, f'{args.file}_{batch_size}_{args.map}_{f_datetime}.sav')
     cnn_fname = os.path.join(model_path,
                              f'{modelname}_{args.epochs}_{batch_size}_{args.map}_{f_datetime}.sav')
+    cnn_history_fname = os.path.join(model_path,
+                             f'history_{modelname}_{args.epochs}_{batch_size}_{args.map}_{f_datetime}.npy')
 
     #Pipeline for tensorflow
     if process_cnn:
@@ -239,8 +244,12 @@ if __name__ == '__main__':
             #https://datascience.stackexchange.com/questions/41698/how-to-apply-class-weight-to-a-multi-output-model
 
             history = model.fit(tfds_train, batch_size=batch_size, epochs=args.epochs, validation_data=tfds_valid,
-                                verbose=1, use_multiprocessing=True, workers=8, #class_weight=class_weight_list,
-                                callbacks=[model_checkpoint_callback])
+                                verbose=1, use_multiprocessing=True, workers=8) #class_weight=class_weight)
+                                #Disable callback every epoch
+                                #callbacks=[model_checkpoint_callback])
+            model.save(cnn_fname)
+            logger.info(f'Saving training history to {cnn_history_fname}')
+            np.save(cnn_history_fname, history.history)
         else:
             try:
                 cnn_pretrained_path = os.path.join(base_path, "models", args.cnn_pretrained)
