@@ -20,8 +20,19 @@ from sklearn.multioutput import MultiOutputClassifier
 from src.models.sklearn_models import models
 from src.models.tensorflow_models import cnn_models
 from sklearn.metrics import roc_auc_score, roc_curve, f1_score, accuracy_score
+from tensorflow.keras import mixed_precision
 import logging
 from datetime import datetime
+
+#--batchsize 32 --epochs 6 --cnn_model MobileNetv2_keras --cnn_transfer 1 --cnn True --file cnn_standard --preprocessing cnn_standard.yaml
+
+# For monitoring gpu memory usage
+# gpus = tf.config.experimental.list_physical_devices('GPU')
+# for gpu in gpus:
+#   tf.config.experimental.set_memory_growth(gpu, True)
+
+# Use mixed precision to speed up computation
+mixed_precision.set_global_policy('mixed_float16')
 
 logger = logging.getLogger(__file__)
 
@@ -110,7 +121,8 @@ if __name__ == '__main__':
         allowed_transformations = ['crop', 'resize', 'eqhist', 'adaptive_eqhist', 'normalize']
     else:
         modelname = args.model
-        allowed_transformations = ['crop', 'resize', 'eqhist', 'adaptive_eqhist', 'median_blur', 'gaussian_blur', 'normalize']
+        allowed_transformations = ['crop', 'resize', 'eqhist', 'flatten', 'adaptive_eqhist',
+                                   'median_blur', 'gaussian_blur', 'normalize']
 
     if args.pca_n_components > batch_size and process_pca:
         raise ValueError(f'Number of pca components {args.pca_n_component} is larger than batch size {batch_size}!')
@@ -134,6 +146,7 @@ if __name__ == '__main__':
         valid_dataset = train_dataset.split(validsize=args.validsize, transformations=test_transformations)
     test_dataset = ImageDataset(label_csv_path=test_csv_path, image_path_base=image_path,
                                 frontal_only=frontal_only, transformations=test_transformations)
+
     logger.info(f'train_dataset: {train_dataset}, {train_csv_path}')
     logger.info(f'test_dataset: {test_dataset}, {test_csv_path}')
     logger.info(f'==============================================')
@@ -146,7 +159,6 @@ if __name__ == '__main__':
     model_fname = os.path.join(model_path, f'{args.file}_{batch_size}_{args.map}_{f_datetime}.sav')
     cnn_fname = os.path.join(model_path,
                              f'{modelname}_{args.epochs}_{batch_size}_{args.map}_{f_datetime}.sav')
-
 
     #Pipeline for tensorflow
     if process_cnn:
@@ -171,13 +183,25 @@ if __name__ == '__main__':
         tfds_test = tfds_test.map(lambda x, y, z: tf_read_image(x, y, z, transformations=test_transformations),
                                   num_parallel_calls=tf.data.AUTOTUNE)
 
+        #required for batching
+        tfds_train = tfds_train.batch(batch_size)
+        tfds_valid = tfds_valid.batch(batch_size)
+        tfds_test = tfds_test.batch(batch_size)
+
+        #prefetch
+        tfds_train = tfds_train.prefetch(tf.data.AUTOTUNE)
+        tfds_valid = tfds_valid.prefetch(tf.data.AUTOTUNE)
+        tfds_test = tfds_test.prefetch(tf.data.AUTOTUNE)
+
+
         for feat, lab in tfds_train.take(1):
             feature_shape = (feat[0].shape[1],)
             image_shape = (feat[1].shape[1], feat[1].shape[2], feat[1].shape[3])
 
         y_test_multi = []
         for x, test_label in tfds_test:
-            y_test_multi.append(test_label.numpy()[0])
+            for item in test_label:
+                y_test_multi.append(item.numpy())
 
         y_test_multi = np.array(y_test_multi)
 
@@ -203,8 +227,18 @@ if __name__ == '__main__':
                 mode='min',
                 save_best_only=True)
 
+            #TODO: Find out how to get tensorboard to work in Windows
+            #tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir='logs',
+            #                         histogram_freq=1,
+            #                         write_graph=True,
+            #                         write_images=True,
+            #                         update_freq='batch',
+            #                         profile_batch=2,
+            #                         embeddings_freq=1)
+
             #TODO: fix bug with class weight, not sure how to solve this
             #https://datascience.stackexchange.com/questions/41698/how-to-apply-class-weight-to-a-multi-output-model
+
             history = model.fit(tfds_train, batch_size=batch_size, epochs=args.epochs, validation_data=tfds_valid,
                                 verbose=1, use_multiprocessing=True, workers=8, #class_weight=class_weight_list,
                                 callbacks=[model_checkpoint_callback])

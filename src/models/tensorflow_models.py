@@ -295,7 +295,11 @@ def DenseNet121_keras(output_size, not_transfer=False, feature_shape=(4,), image
     x1 = Flatten()(x1)
     
     #branch 2 for the non-image features
+<<<<<<< HEAD
     x2 = Dense(10)(inputs_feature)
+=======
+    x2 = Dense(inputs_feature.shape[1])(inputs_feature)
+>>>>>>> 37d11aaa997fea7e883dabafe1f0df18ca6471d0
     x2 = Activation("relu")(x2)
     x2 = Dropout(0.5)(x2)
     
