@@ -78,7 +78,10 @@ def convolutional_block(X, f, filters, stage, block, s=2):
 
     return X
 
-def ResNet152_new(output_size, not_transfer=False, feature_shape=(4,), image_shape=(320,320, 1)):
+def ResNet152_new(output_size, 
+                  not_transfer=False, 
+                  feature_shape=(4,), 
+                  image_shape=(320,320, 1)):
 
     inputs_feature = Input(shape=feature_shape)
     inputs_image = Input(shape=image_shape)
@@ -161,8 +164,8 @@ def ResNet152_new(output_size, not_transfer=False, feature_shape=(4,), image_sha
     x2 = BatchNormalization()(x2)
     
     #conatenate the features
-    x = tf.keras.layers.Concatenate()([x1, x2])
-    x = tf.keras.layers.Activation('relu')(x)
+    x = Concatenate()([x1, x2])
+    x = Activation('relu')(x)
     
     # create hidden layers for classification
     x = Dense(128)(x)
@@ -183,17 +186,17 @@ def ResNet152_new(output_size, not_transfer=False, feature_shape=(4,), image_sha
 
 def DenseNet121_new(output_size, 
                     not_transfer=False, 
-                    feature_shape=(4,), 
+                    feature_shape=(3,), 
                     image_shape=(320,320, 1),
                     filters = 32):
-    
+
     inputs_feature = Input(shape=feature_shape)
     inputs_image = Input(shape=image_shape)
     
     #utility functions for densenet
     #batch norm + relu + conv
     def bn_rl_conv(x,filters,kernel=1,strides=1):
-        
+
         x = BatchNormalization()(x)
         x = Activation("relu")(x)
         x = Conv2D(filters, kernel, strides=strides,padding = 'same')(x)
@@ -204,7 +207,7 @@ def DenseNet121_new(output_size,
         for _ in range(repetition):
             y = bn_rl_conv(x, 4*filters)
             y = bn_rl_conv(y, filters, 3)
-            x = Concatenate([y,x])
+            x = Concatenate()([y,x])
         return x
         
     def transition_layer(x):
@@ -220,6 +223,7 @@ def DenseNet121_new(output_size,
     for repetition in [6,12,24,16]:   
         d = dense_block(x1, repetition)
         x1 = transition_layer(d)
+    
     x1 = GlobalAveragePooling2D()(d)
     x1 = Flatten()(x1)
     
@@ -229,22 +233,31 @@ def DenseNet121_new(output_size,
     x2 = Dropout(0.5)(x2)
     
     #conatenate the features
-    x = tf.keras.layers.Concatenate()([x1, x2])
+    x = tf.keras.layers.Concatenate()([x1, x2])    
     x = tf.keras.layers.Activation('relu')(x)
+    
+    # create hidden layers for classification
+    x = Dense(128)(x)
+    x = Activation("relu")(x)
+    x = BatchNormalization()(x)
+    x = Dropout(0.5)(x)
 
     # create output layer
-    x = tf.keras.layers.Dense(output_size)(x)
-    x = tf.keras.layers.Activation("sigmoid", name='predicted_observations')(x)
+    x = Dense(output_size)(x)
+    x = Activation("sigmoid", name='predicted_observations')(x)
 
     # create model class
-    model = tf.keras.Model(inputs=[inputs_feature, inputs_image], 
+    model = Model(inputs=[inputs_feature, inputs_image], 
                            outputs=x,
                            name = 'DenseNet121_keras')
 
     return model
 
 #keras standard MobileNet v2
-def MobileNetv2_keras(output_size, not_transfer=False, feature_shape=(4,), image_shape=(320,320, 3)):
+def MobileNetv2_keras(output_size, 
+                      not_transfer=False, 
+                      feature_shape=(4,), 
+                      image_shape=(320,320, 3)):
 
     cnn_base = tf.keras.applications.mobilenet_v2.MobileNetV2(include_top=not_transfer,
                                                               weights='imagenet')
@@ -279,7 +292,10 @@ def MobileNetv2_keras(output_size, not_transfer=False, feature_shape=(4,), image
     return model
 
 # keras standard DenseNet121
-def DenseNet121_keras(output_size, not_transfer=False, feature_shape=(4,), image_shape=(320,320, 3)):
+def DenseNet121_keras(output_size, 
+                      not_transfer=False, 
+                      feature_shape=(4,), 
+                      image_shape=(320,320, 3)):
 
     cnn_base = tf.keras.applications.DenseNet121(include_top=not_transfer,
                                                  weights='imagenet')
@@ -295,11 +311,7 @@ def DenseNet121_keras(output_size, not_transfer=False, feature_shape=(4,), image
     x1 = Flatten()(x1)
     
     #branch 2 for the non-image features
-<<<<<<< HEAD
     x2 = Dense(10)(inputs_feature)
-=======
-    x2 = Dense(inputs_feature.shape[1])(inputs_feature)
->>>>>>> 37d11aaa997fea7e883dabafe1f0df18ca6471d0
     x2 = Activation("relu")(x2)
     x2 = Dropout(0.5)(x2)
     
@@ -319,7 +331,10 @@ def DenseNet121_keras(output_size, not_transfer=False, feature_shape=(4,), image
     return model
 
 # keras standard ResNet152
-def ResNet152_keras(output_size, not_transfer=False, feature_shape=(4,), image_shape=(320,320, 3)):
+def ResNet152_keras(output_size, 
+                    not_transfer=False, 
+                    feature_shape=(4,), 
+                    image_shape=(320,320, 3)):
 
     cnn_base = tf.keras.applications.ResNet152(include_top=not_transfer,
                                                  weights='imagenet')
@@ -339,6 +354,7 @@ def ResNet152_keras(output_size, not_transfer=False, feature_shape=(4,), image_s
     x2 = Activation("relu")(x2)
     x2 = Dropout(0.5)(x2)
     
+    #concatenate the branches
     x = tf.keras.layers.Concatenate()([x1, x2])
     x = tf.keras.layers.Activation('relu')(x)
 
