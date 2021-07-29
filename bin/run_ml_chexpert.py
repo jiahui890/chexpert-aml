@@ -3,6 +3,7 @@ import sys
 
 from pandas.core.indexes import base
 
+sys.path.append('.')
 sys.path.append('..')
 import argparse
 import datetime as dt
@@ -21,6 +22,7 @@ from src.models.sklearn_models import models
 from src.models.tensorflow_models import cnn_models
 from sklearn.metrics import roc_auc_score, roc_curve, f1_score, accuracy_score
 from tensorflow.keras import mixed_precision
+from keras import backend as K
 import logging
 from datetime import datetime
 
@@ -34,6 +36,22 @@ mixed_precision.set_global_policy('mixed_float16')
 
 logger = logging.getLogger(__file__)
 
+def get_weighted_loss(weights, loss='binary_crossentropy'):
+    """"Custom loss function for weighted bce
+
+        Args:
+            weights (np.array(size of label, num of classes)): Array of weights
+            loss: loss function
+
+        Returns:
+            weighted_bce_loss: List of loss
+    """
+    def weighted_bce_loss(y_true, y_pred):
+        return K.mean((weights [:,0] ** (1-y_true)) * (weights[:,1] ** (y_true)) * K.binary_crossentropy(y_true, y_pred), axis=-1)
+
+    if loss == 'binary_crossentropy':
+        return weighted_bce_loss
+
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO,
                         format='%(asctime)s.%(msecs)03d %(levelname)s %(module)s: %(message)s',
@@ -41,7 +59,6 @@ if __name__ == '__main__':
 
     default_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
     parser = argparse.ArgumentParser()
-
 
     parser.add_argument("--pca", type=str, default='False', choices=['True', 'False'],
                         help="Option to train pca model.")
@@ -140,11 +157,6 @@ if __name__ == '__main__':
                                  frontal_only=frontal_only)
     class_weight_list = train_dataset.get_class_weights(return_labels)
     classes = np.array([[0, 1] for y in return_labels]).astype(np.float32)
-    ratio = []
-    for k in class_weight_list.keys():
-        ratio.append(class_weight_list[k][1]/class_weight_list[k][0])
-    print (np.mean(ratio), ratio)
-    class_weight = {0:1, 1: np.mean(ratio)}
 
     if args.validsize is not None:
         valid_dataset = train_dataset.split(validsize=args.validsize, transformations=test_transformations)
@@ -221,7 +233,7 @@ if __name__ == '__main__':
                                               image_shape=image_shape)
             logger.info(model.summary())
             model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=cnn_param_config['learning_rate']),
-                          loss=cnn_param_config['loss'],
+                          loss=get_weighted_loss(class_weight_list, cnn_param_config['loss']),
                           metrics=[tf.keras.metrics.AUC(multi_label=True), 'binary_accuracy', tf.keras.metrics.Precision(),
                                    tf.keras.metrics.Recall()])
 
@@ -245,7 +257,7 @@ if __name__ == '__main__':
             #https://datascience.stackexchange.com/questions/41698/how-to-apply-class-weight-to-a-multi-output-model
 
             history = model.fit(tfds_train, batch_size=batch_size, epochs=args.epochs, validation_data=tfds_valid,
-                                verbose=1, use_multiprocessing=True, workers=8) #class_weight=class_weight)
+                                verbose=1, use_multiprocessing=True, workers=8)
                                 #Disable callback every epoch
                                 #callbacks=[model_checkpoint_callback])
             model.save(cnn_fname)
