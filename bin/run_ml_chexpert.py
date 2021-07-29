@@ -178,11 +178,14 @@ if __name__ == '__main__':
                                                         test_dataset.df['Path'].values,
                                                         test_dataset.df[return_labels].values))
 
-        tfds_train = tfds_train.map(lambda x, y, z: tf_read_image(x, y, z, transformations=test_transformations),
+        tfds_train = tfds_train.map(lambda x, y, z: tf_read_image(x, y, z, cnn_model=args.cnn_model,
+                                                                  transformations=test_transformations),
                                     num_parallel_calls=tf.data.AUTOTUNE)
-        tfds_valid = tfds_valid.map(lambda x, y, z: tf_read_image(x, y, z, transformations=test_transformations),
+        tfds_valid = tfds_valid.map(lambda x, y, z: tf_read_image(x, y, z, cnn_model=args.cnn_model,
+                                                                  transformations=test_transformations),
                                     num_parallel_calls=tf.data.AUTOTUNE)
-        tfds_test = tfds_test.map(lambda x, y, z: tf_read_image(x, y, z, transformations=test_transformations),
+        tfds_test = tfds_test.map(lambda x, y, z: tf_read_image(x, y, z, cnn_model=args.cnn_model,
+                                                                transformations=test_transformations),
                                   num_parallel_calls=tf.data.AUTOTUNE)
 
         #required for batching
