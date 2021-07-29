@@ -69,6 +69,7 @@ if __name__ == '__main__':
                         help="1 to have frontal view only, 0 to include both frontal/lateral views")
     parser.add_argument("--cnn", type=str, default='False', choices=['True', 'False'],
                         help="'True' if running CNN model.")
+
     parser.add_argument("--cnn_pretrained", type=str, default=None, help="model file path for pretrained cnn model.")
     parser.add_argument("--cnn_model", type=str, default='MobileNetv2_keras', choices=[m for m in cnn_models],
                         help="Choice of cnn model.")
