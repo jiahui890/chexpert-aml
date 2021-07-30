@@ -93,7 +93,7 @@ you used earlier during training.
 --ylabels "No Finding" "Edema" 
 --file pca_nb`
 
-* To train a CNN model with batch size of 16, no limit of dataset with transfer learning, default hyperparameter 
+* To train a CNN model with batch size of 16, limit of 10000 images in training dataset, with transfer learning, default hyperparameter 
 and epochs = 5
 
 `python run_ml_chexpert.py 
