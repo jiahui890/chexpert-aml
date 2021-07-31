@@ -67,13 +67,6 @@ class ImageDataset():
         labels = self.df[self._label_header ].iloc[idx].values
         return (features, transformed, labels)
     
-    def imshow(self, idx, transform = False):
-        image = self.imgproc.imread(self.df['Path'].iloc[idx])
-        if transform:
-            image = self.imgproc.transform(image, self.transformations)
-        plt.imshow(image,cmap=plt.cm.gray)
-        plt.show()
-
     def __clean__(self):
         """"Perform basic data cleaning
         """
