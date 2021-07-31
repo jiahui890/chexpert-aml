@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 from src.data.batchloader import BatchLoader
 from sklearn.utils.class_weight import compute_class_weight
+import matplotlib.pyplot as plt
 import os
 
 
@@ -65,7 +66,7 @@ class ImageDataset():
         features = self.df[self._feature_header].iloc[idx].values
         labels = self.df[self._label_header ].iloc[idx].values
         return (features, transformed, labels)
-
+    
     def __clean__(self):
         """"Perform basic data cleaning
         """

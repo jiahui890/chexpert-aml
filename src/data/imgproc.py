@@ -48,6 +48,8 @@ def tf_read_image(x_features, filename, label, cnn_model,
     image = imgproc.transform(image, transformations)
 
     if cnn_model in ["MobileNetv2_keras",
+                     "MobileNetv2_pop1",
+                     "MobileNetv2_pop2",
                      "DenseNet121_keras",
                      "ResNet152_keras"]:
         image = tf.image.grayscale_to_rgb(image)
