@@ -26,7 +26,6 @@ from keras import backend as K
 import logging
 from datetime import datetime
 from tensorflow.keras import mixed_precision
-mixed_precision.set_global_policy('mixed_float16')
 
 # For monitoring gpu memory usage
 # gpus = tf.config.experimental.list_physical_devices('GPU')
@@ -272,7 +271,7 @@ if __name__ == '__main__':
             try:
                 cnn_pretrained_path = os.path.join(base_path, "models", args.cnn_pretrained)
                 logger.info(f'Loading pretrained cnn model: {cnn_pretrained_path}')
-                model = tf.keras.models.load_model(cnn_pretrained_path)
+                model = tf.keras.models.load_model(cnn_pretrained_path, compile=False)
                 logger.info(model.summary())
             except:
                 logger.error(f'Unable to load pretrained cnn model: {args.cnn_pretrained} !')
