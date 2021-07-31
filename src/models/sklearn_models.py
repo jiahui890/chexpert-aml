@@ -45,7 +45,12 @@ models = {
     "GaussianNB":
     GaussianNB(),
     "RandomForestClassifier":
-    RandomForestClassifier(random_state=42),
+    RandomForestClassifier(random_state=42,
+                           n_estimators=1500,
+                           min_samples_split=5,
+                           min_samples_leaf=4,
+                           max_features='sqrt',
+                           bootstrap=False),
     "SGDClassifier":
     SGDClassifier(loss='log', random_state=42, penalty='l1', alpha=0.001),
     "SGDClassifier_Elastic":
