@@ -114,7 +114,7 @@ if __name__ == '__main__':
     #create a list of models
     model_list = []
     
-    '''
+
     trad_ml_models = ['pca_gaussiannb_standard_full_500_Random_0502_31072021.sav',
                       'pca_gaussiannb_standard_full_500_U-one_0801_31072021.sav',
                       'pca_gaussiannb_standard_full_500_U-zero_0752_30072021.sav',
@@ -131,20 +131,13 @@ if __name__ == '__main__':
                   'MobileNetv2_keras_5_16_U-one_0153_30072021.sav',
                   'MobileNetv2_keras_5_16_U-zero_0120_30072021.sav',
                   'MobileNetv2_keras_pop1_5_16_Random_0204_31072021.sav',
-                  'MobileNetv2_keras_pop1_5_16_U-one_0519_31072021.sav',
-                  'MobileNetv2_keras_pop2_5_16_U-one_0830_31072021.sav',
                   'ResNet152_keras_3_16_Random_0825_30072021.sav',
                   'ResNet152_keras_3_16_U-one_0717_30072021.sav',
                   'ResNet152_keras_3_16_U-zero_0611_30072021.sav',
                   'ResNet152_new_3_16_Random_1445_30072021.sav',
                   'ResNet152_new_3_16_U-one_1210_30072021.sav',
                   'ResNet152_new_3_16_U-zero_0935_30072021.sav']
-    '''
-    trad_ml_models = ['pca_gaussiannb_standard_full_500_Random_0502_31072021.sav',
-                      'pca_gaussiannb_standard_full_500_U-one_0801_31072021.sav',
-                      'pca_gaussiannb_standard_full_500_U-zero_0752_30072021.sav']
-    cnn_models=['DenseNet121_keras_5_16_Random_0506_30072021.sav']
-    
+
     #load PCA
     logger.info(f'Setting up pca')
     
@@ -368,9 +361,9 @@ if __name__ == '__main__':
     results_agg = results_ensem_export.groupby('ensem_name',
                                                axis = 0)['auc'].mean()
     
-    best_ensem = results_agg.idxmax
+    best_ensem = results_agg.idxmax()
     
-    print(best_ensem)
+    logger.info(f'The best ensemble is: {best_ensem}')
     
     #generate charts and results for best ensem
     #calculate model stats
