@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 from src.data.batchloader import BatchLoader
 from sklearn.utils.class_weight import compute_class_weight
+import matplotlib.pyplot as plt
 import os
 
 
@@ -65,7 +66,7 @@ class ImageDataset():
         features = self.df[self._feature_header].iloc[idx].values
         labels = self.df[self._label_header ].iloc[idx].values
         return (features, transformed, labels)
-
+    
     def __clean__(self):
         """"Perform basic data cleaning
         """
@@ -94,17 +95,17 @@ class ImageDataset():
         map_dict = {
             'U-zero':
                 {
-                    1.0: 1,
-                    '': 0,
-                    0.0: 0,
-                    -1.0: 0
+                    1.0: 1.0,
+                    '': 0.0,
+                    0.0: 0.0,
+                    -1.0: 0.0
                 },
             'U-one':
                 {
-                    1.0: 1,
-                    '': 0,
-                    0.0: 0,
-                    -1.0: 1
+                    1.0: 1.0,
+                    '': 0.0,
+                    0.0: 0.0,
+                    -1.0: 1.0
                 }
         }
 
@@ -172,11 +173,13 @@ class ImageDataset():
         Returns:
             class_weight_list: List of class weight dict
         """
-        class_weight_list = {}
+        class_weight_list = np.zeros(shape=(len(return_labels), 2))
         for idx, col in enumerate(return_labels):
             y_data = self.df[col].values.flatten()
             class_weight = compute_class_weight(class_weight='balanced', classes=[0, 1], y=y_data)
-            class_weight_list[idx] = {0: class_weight[0], 1: class_weight[1]}
+            #class_weight_list[idx] = {0: class_weight[0], 1: class_weight[1]}
+            class_weight_list[idx, 0] = class_weight[0]
+            class_weight_list[idx, 1] = class_weight[1]
 
         return class_weight_list
 

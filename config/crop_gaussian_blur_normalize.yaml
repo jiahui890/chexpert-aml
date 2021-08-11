@@ -1,0 +1,5 @@
+transformations:
+  - [crop, {size: [320,320]}]
+  - [gaussian_blur,{}]  
+  - [normalize, {}]
+  - [flatten,{}]

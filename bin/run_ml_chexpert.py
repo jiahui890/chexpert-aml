@@ -3,6 +3,7 @@ import sys
 
 from pandas.core.indexes import base
 
+sys.path.append('.')
 sys.path.append('..')
 import argparse
 import datetime as dt
@@ -21,12 +22,10 @@ from src.models.sklearn_models import models
 from src.models.tensorflow_models import cnn_models
 from sklearn.metrics import roc_auc_score, roc_curve, f1_score, accuracy_score
 from tensorflow.keras import mixed_precision
+from keras import backend as K
 import logging
 from datetime import datetime
 from tensorflow.keras import mixed_precision
-mixed_precision.set_global_policy('mixed_float16')
-
-#--batchsize 32 --epochs 6 --cnn_model MobileNetv2_keras --cnn_transfer 1 --cnn True --file cnn_standard --preprocessing cnn_standard.yaml
 
 # For monitoring gpu memory usage
 # gpus = tf.config.experimental.list_physical_devices('GPU')
@@ -38,6 +37,22 @@ mixed_precision.set_global_policy('mixed_float16')
 
 logger = logging.getLogger(__file__)
 
+def get_weighted_loss(weights, loss='binary_crossentropy'):
+    """"Custom loss function for weighted bce
+
+        Args:
+            weights (np.array(size of label, num of classes)): Array of weights
+            loss: loss function
+
+        Returns:
+            weighted_bce_loss: List of loss
+    """
+    def weighted_bce_loss(y_true, y_pred):
+        return K.mean((weights [:,0] ** (1-y_true)) * (weights[:,1] ** (y_true)) * K.binary_crossentropy(y_true, y_pred), axis=-1)
+
+    if loss == 'binary_crossentropy':
+        return weighted_bce_loss
+
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO,
                         format='%(asctime)s.%(msecs)03d %(levelname)s %(module)s: %(message)s',
@@ -45,7 +60,6 @@ if __name__ == '__main__':
 
     default_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
     parser = argparse.ArgumentParser()
-
 
     parser.add_argument("--pca", type=str, default='False', choices=['True', 'False'],
                         help="Option to train pca model.")
@@ -143,6 +157,7 @@ if __name__ == '__main__':
                                  transformations=preprocessing_config["transformations"], map_option=args.map,
                                  frontal_only=frontal_only)
     class_weight_list = train_dataset.get_class_weights(return_labels)
+    classes = np.array([[0, 1] for y in return_labels]).astype(np.float32)
 
     if args.validsize is not None:
         valid_dataset = train_dataset.split(validsize=args.validsize, transformations=test_transformations)
@@ -155,12 +170,13 @@ if __name__ == '__main__':
 
     num_batch = train_dataset._num_image // batch_size + bool(train_dataset._num_image % batch_size)  # ceiling division
     start_time = datetime.now()
-    classes = np.array([[0, 1] for y in return_labels]).astype(np.float32)
     f_datetime = start_time.strftime('%H%M_%d%m%Y')
     f_date_dir = start_time.strftime('%d%m%Y')
     model_fname = os.path.join(model_path, f'{args.file}_{batch_size}_{args.map}_{f_datetime}.sav')
     cnn_fname = os.path.join(model_path,
                              f'{modelname}_{args.epochs}_{batch_size}_{args.map}_{f_datetime}.sav')
+    cnn_history_fname = os.path.join(model_path,
+                             f'history_{modelname}_{args.epochs}_{batch_size}_{args.map}_{f_datetime}.npy')
 
     #Pipeline for tensorflow
     if process_cnn:
@@ -221,7 +237,7 @@ if __name__ == '__main__':
                                               image_shape=image_shape)
             logger.info(model.summary())
             model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=cnn_param_config['learning_rate']),
-                          loss=cnn_param_config['loss'],
+                          loss=get_weighted_loss(class_weight_list, cnn_param_config['loss']),
                           metrics=[tf.keras.metrics.AUC(multi_label=True), 'binary_accuracy', tf.keras.metrics.Precision(),
                                    tf.keras.metrics.Recall()])
 
@@ -245,13 +261,17 @@ if __name__ == '__main__':
             #https://datascience.stackexchange.com/questions/41698/how-to-apply-class-weight-to-a-multi-output-model
 
             history = model.fit(tfds_train, batch_size=batch_size, epochs=args.epochs, validation_data=tfds_valid,
-                                verbose=1, use_multiprocessing=True, workers=8, #class_weight=class_weight_list,
-                                callbacks=[model_checkpoint_callback])
+                                verbose=1, use_multiprocessing=True, workers=8)
+                                #Disable callback every epoch
+                                #callbacks=[model_checkpoint_callback])
+            model.save(cnn_fname)
+            logger.info(f'Saving training history to {cnn_history_fname}')
+            np.save(cnn_history_fname, history.history)
         else:
             try:
                 cnn_pretrained_path = os.path.join(base_path, "models", args.cnn_pretrained)
                 logger.info(f'Loading pretrained cnn model: {cnn_pretrained_path}')
-                model = tf.keras.models.load_model(cnn_pretrained_path)
+                model = tf.keras.models.load_model(cnn_pretrained_path, compile=False)
                 logger.info(model.summary())
             except:
                 logger.error(f'Unable to load pretrained cnn model: {args.cnn_pretrained} !')
