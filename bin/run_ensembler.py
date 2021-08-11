@@ -24,6 +24,7 @@ from sklearn.metrics import roc_auc_score, roc_curve, f1_score, accuracy_score
 from tensorflow.keras import mixed_precision
 mixed_precision.set_global_policy('mixed_float16')
 
+
 #set up logger
 logger = logging.getLogger(__file__)
 
@@ -384,6 +385,7 @@ if __name__ == '__main__':
         accuracy = accuracy_score(y_true=y_test, y_pred=y_pred_label)
         f1 = f1_score(y_true=y_test, y_pred=y_pred_label)
         f1_dummy = f1_score(y_true=y_test, y_pred=np.ones(shape=y_pred.shape))
+
         fig = plt.figure(figsize=(5, 5))
         ax = fig.add_subplot()
         ax.plot(fpr, tpr, label=f"AUC: %.3f " % (auc))
@@ -410,4 +412,4 @@ if __name__ == '__main__':
         f.write(f'f1-score: {f1}\n')
         f.write(f'f1-score (dummy): {f1_dummy}\n')
         f.close()
-    
+
