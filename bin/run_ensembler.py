@@ -37,7 +37,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     
     #set arguments for number of models per ensemble
-    parser.add_argument("--num_models", type=int, default=3, choices=[3,4,5,6],
+    parser.add_argument("--num_models", type=int, default=3, choices=[2,3,4,5,6],
                         help="Number of models in each ensemble")
     
     #collect arguments
