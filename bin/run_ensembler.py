@@ -126,12 +126,18 @@ if __name__ == '__main__':
     cnn_models = ['DenseNet121_keras_5_16_Random_0506_30072021.sav',
                   'DenseNet121_keras_5_16_U-one_0402_30072021.sav',
                   'DenseNet121_keras_5_16_U-zero_0257_30072021.sav',
+                  'DenseNet121_keras_grad_5_16_1_Random_1515_10082021.sav',
+                  'DenseNet121_keras_grad_5_16_1_U-one_2227_10082021.sav',
+                  'DenseNet121_keras_grad_5_16_1_U-zero_1848_10082021.sav',
                   'DenseNet121_new_5_16_Random_0232_31072021.sav',
                   'DenseNet121_new_5_16_U-one_2157_30072021.sav',
                   'DenseNet121_new_5_16_U-zero_0714_31072021.sav',
                   'MobileNetv2_keras_5_16_U-one_0153_30072021.sav',
                   'MobileNetv2_keras_5_16_U-zero_0120_30072021.sav',
                   'MobileNetv2_keras_pop1_5_16_Random_0204_31072021.sav',
+                  'MobileNetv2_keras_grad_5_16_20_Random_1153_09082021.sav',
+                  'MobileNetv2_keras_grad_5_16_20_U-one_1540_09082021.sav',
+                  'MobileNetv2_keras_grad_5_16_20_U-zero_1346_09082021.sav',
                   'ResNet152_keras_3_16_Random_0825_30072021.sav',
                   'ResNet152_keras_3_16_U-one_0717_30072021.sav',
                   'ResNet152_keras_3_16_U-zero_0611_30072021.sav',
@@ -363,8 +369,10 @@ if __name__ == '__main__':
                                                axis = 0)['auc'].mean()
     
     best_ensem = results_agg.idxmax()
+    best_auc = results_agg[best_ensem]
     
     logger.info(f'The best ensemble is: {best_ensem}')
+    logger.info(f'AUC is: {best_auc}')
     
     #generate charts and results for best ensem
     #calculate model stats
