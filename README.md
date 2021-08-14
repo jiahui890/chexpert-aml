@@ -3,11 +3,6 @@ ISS610: Applied Machine Learning Project
 
 Chest x-ray automated diagnosis machine learning project.
 
-TODO
-------------
-* Add image preprocessing pipeline to CNN model
-* Add in more CNN and sklearn model options
-
 Getting Started
 ------------
 
@@ -20,10 +15,11 @@ Usage
 To run the ml jobs, simply run the following
 
 ```
-usage: python /bin/run_ml_chexpert.py [-h] [--pca {True,False}] [--pca_pretrained PCA_PRETRAINED] [--pca_n_components PCA_N_COMPONENTS] [--preprocessing PREPROCESSING] [--file FILE] [--map {U-zero,U-one,Random}] [--batchsize BATCHSIZE] [--validsize VALIDSIZE] [--limit LIMIT] [--path PATH]
-                          [--ylabels {No Finding,Enlarged Cardiomediastinum,Cardiomegaly,Lung Opacity,Lung Lesion,Edema,Consolidation,Pneumonia,Atelectasis,Pneumothorax,Pleural Effusion,Pleural Other,Fracture,Support Devices} [{No Finding,Enlarged Cardiomediastinum,Cardiomegaly,Lung Opacity,Lung Lesion,Edema,Co
-nsolidation,Pneumonia,Atelectasis,Pneumothorax,Pleural Effusion,Pleural Other,Fracture,Support Devices} ...]]
-                          [--cnn_transfer {0,1}] [--cnn {True,False}] [--cnn_model {ResNet152_new,DenseNet121_new,MobileNetv2_keras,DenseNet121_keras,ResNet152_keras}] [--cnn_param CNN_PARAM] [--model {MultinomialNB,GaussianNB,SGDClassifier,SGDClassifier_Elastic}] [--model_pretrained MODEL_PRETRAINED] [--n_jobs N_JOBS] [--epochs EPOCHS]
+usage: run_ml_chexpert.py [-h] [--pca {True,False}] [--pca_pretrained PCA_PRETRAINED] [--pca_n_components PCA_N_COMPONENTS] [--preprocessing PREPROCESSING] [--file FILE] [--map {U-zero,U-one,Random}] [--batchsize BATCHSIZE] [--validsize VALIDSIZE] [--limit LIMIT] [--path PATH]
+                          [--ylabels {No Finding,Enlarged Cardiomediastinum,Cardiomegaly,Lung Opacity,Lung Lesion,Edema,Consolidation,Pneumonia,Atelectasis,Pneumothorax,Pleural Effusion,Pleural Other,Fracture,Support Devices} [{No Finding,Enlarged Cardiomediastinum,Cardiomegaly,Lung Opacity,Lung Lesion,Edema,
+Consolidation,Pneumonia,Atelectasis,Pneumothorax,Pleural Effusion,Pleural Other,Fracture,Support Devices} ...]]
+                          [--cnn_transfer {0,1}] [--frontal_only {0,1}] [--cnn {True,False}] [--cnn_pretrained CNN_PRETRAINED] [--cnn_model {ResNet152_new,DenseNet121_new,MobileNetv2_keras,MobileNetv2_pop1,DenseNet121_keras,ResNet152_keras}] [--cnn_param CNN_PARAM]
+                          [--model {MultinomialNB,GaussianNB,RandomForestClassifier,SGDClassifier,SGDClassifier_Elastic}] [--model_pretrained MODEL_PRETRAINED] [--n_jobs N_JOBS] [--epochs EPOCHS] [--steps_execute STEPS_EXECUTE] [--layer_train LAYER_TRAIN]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -43,21 +39,29 @@ optional arguments:
                         Validation dataset size.
   --limit LIMIT         Maximum dataset size capped.
   --path PATH           Base path.
-  --ylabels {No Finding,Enlarged Cardiomediastinum,Cardiomegaly,Lung Opacity,Lung Lesion,Edema,Consolidation,Pneumonia,Atelectasis,Pneumothorax,Pleural Effusion,Pleural Other,Fracture,Support Devices} [{No Finding,Enlarged Cardiomediastinum,Cardiomegaly,Lung Opacity,Lung Lesion,Edema,Consolidation,Pneumonia,Ate
-lectasis,Pneumothorax,Pleural Effusion,Pleural Other,Fracture,Support Devices} ...]
+  --ylabels {No Finding,Enlarged Cardiomediastinum,Cardiomegaly,Lung Opacity,Lung Lesion,Edema,Consolidation,Pneumonia,Atelectasis,Pneumothorax,Pleural Effusion,Pleural Other,Fracture,Support Devices} [{No Finding,Enlarged Cardiomediastinum,Cardiomegaly,Lung Opacity,Lung Lesion,Edema,Consolidation,Pneumonia,A
+telectasis,Pneumothorax,Pleural Effusion,Pleural Other,Fracture,Support Devices} ...]
                         Labels to predict.
   --cnn_transfer {0,1}  1 to have transfer learning, 0 to train from scratch
+  --frontal_only {0,1}  1 to have frontal view only, 0 to include both frontal/lateral views
   --cnn {True,False}    'True' if running CNN model.
-  --cnn_model {ResNet152_new,DenseNet121_new,MobileNetv2_keras,DenseNet121_keras,ResNet152_keras}
-                        Choice of cnn model. '_new' is a handcrafted ResNet152 architecture for single channel image. '_keras' models use pre-trained models from keras.
+  --cnn_pretrained CNN_PRETRAINED
+                        model file path for pretrained cnn model.
+  --cnn_model {ResNet152_new,DenseNet121_new,MobileNetv2_keras,MobileNetv2_pop1,DenseNet121_keras,ResNet152_keras}
+                        Choice of cnn model.
   --cnn_param CNN_PARAM
                         .yaml config file for model hyperparameter
-  --model {MultinomialNB,GaussianNB,SGDClassifier,SGDClassifier_Elastic}
+  --model {MultinomialNB,GaussianNB,RandomForestClassifier,SGDClassifier,SGDClassifier_Elastic}
                         Choice of model.
   --model_pretrained MODEL_PRETRAINED
                         .sav file for pretrained classifer e.g NaiveBayes_50_50_Random_1259_25072021.sav
   --n_jobs N_JOBS       Number of cores for multi-processing.
   --epochs EPOCHS       Number of epochs.
+  --steps_execute STEPS_EXECUTE
+                        Number of steps per execution.
+  --layer_train LAYER_TRAIN
+                        Number of layer groups to train for each step during 1st epoch.
+
 
 
 ```
@@ -93,17 +97,11 @@ you used earlier during training.
 --ylabels "No Finding" "Edema" 
 --file pca_nb`
 
-* To train a CNN model with batch size of 16, limit of 10000 images in training dataset, with transfer learning, default hyperparameter 
-and epochs = 5
+* To train a CNN model (MobileNetv2) with batch size of 16, limit of 5000 images in training dataset, without transfer learning, default hyperparameter 
+and epochs = 5, and for tensorflow to run evaluation metric with step of 1 iteration, to do unfreeze weights for 20 groups of layers,
+using label mapping of U-one 
 
-`python run_ml_chexpert.py 
---batchsize 16 
---limit 10000 
---epochs 5
---cnn_model MobileNetv2_keras
---cnn_transfer 1
---cnn True
---file cnn_default`
+`python run_ml_chexpert.py --batchsize 16 --epochs 5 --steps_execute 1 --layer_train 20 --cnn_model DenseNet121_keras --cnn_transfer 0 --map U-one --cnn True --file cnn_standard_balanced_fulldata_gradual20 --preprocessing cnn_standard.yaml`
 
 
 Configurations
@@ -168,14 +166,15 @@ Project Organization
     │   │
     │   ├── data           <- Dataset classes for data loading and preprocessing
     │   │   └── dataset.py
+    │   │   └── batchloader.py
+    │   │   └── imgproc.py
+    │   │   └── imgproc_skimage.py    
     │   │
     │   │
-    │   ├── models         <- Scripts to train models and then use trained models to make
-    │   │   │                 predictions
+    │   ├── models         <- Scripts to setup model configurations
     │   │   ├── sklearn_models.py
+    │   │   ├── tensorflow_models.py
     │   │
-    │   └── visualization  <- Scripts to create exploratory and results oriented visualizations
-    │       └── visualize.py
     │
     └── tox.ini            <- tox file with settings for running tox; see tox.readthedocs.io
 

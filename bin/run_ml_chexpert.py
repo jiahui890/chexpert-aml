@@ -27,11 +27,6 @@ import logging
 from datetime import datetime
 from tensorflow.keras import mixed_precision
 
-# For monitoring gpu memory usage
-# gpus = tf.config.experimental.list_physical_devices('GPU')
-# for gpu in gpus:
-#   tf.config.experimental.set_memory_growth(gpu, True)
-
 # Use mixed precision to speed up computation
 mixed_precision.set_global_policy('mixed_float16')
 
@@ -99,6 +94,9 @@ if __name__ == '__main__':
                         help=".sav file for pretrained classifer e.g NaiveBayes_50_50_Random_1259_25072021.sav")
     parser.add_argument("--n_jobs", type=int, default=-1, help="Number of cores for multi-processing.")
     parser.add_argument("--epochs", type=int, default=3, help="Number of epochs.")
+    parser.add_argument("--steps_execute", type=int, default=50, help="Number of steps per execution.")
+    parser.add_argument("--layer_train", type=int, default=10,
+                        help="Number of layer groups to train for each step during 1st epoch.")
 
     args = parser.parse_args()
     logger.info(f'==============================================')
@@ -113,6 +111,7 @@ if __name__ == '__main__':
     model_path = os.path.join(base_path, "models")
     results_path = os.path.join(base_path, "reports", "figures")
     limit = args.limit
+    steps_execute = args.steps_execute
     frontal_only = bool(args.frontal_only)
     batch_size = args.batchsize
     return_labels = args.ylabels
@@ -174,9 +173,9 @@ if __name__ == '__main__':
     f_date_dir = start_time.strftime('%d%m%Y')
     model_fname = os.path.join(model_path, f'{args.file}_{batch_size}_{args.map}_{f_datetime}.sav')
     cnn_fname = os.path.join(model_path,
-                             f'{modelname}_{args.epochs}_{batch_size}_{args.map}_{f_datetime}.sav')
+                             f'{modelname}_{args.epochs}_{batch_size}_{steps_execute}_{args.map}_{f_datetime}.sav')
     cnn_history_fname = os.path.join(model_path,
-                             f'history_{modelname}_{args.epochs}_{batch_size}_{args.map}_{f_datetime}.npy')
+                             f'history_{modelname}_{args.epochs}_{batch_size}_{steps_execute}_{args.map}_{f_datetime}.npy')
 
     #Pipeline for tensorflow
     if process_cnn:
@@ -236,10 +235,7 @@ if __name__ == '__main__':
                                               feature_shape=feature_shape,
                                               image_shape=image_shape)
             logger.info(model.summary())
-            model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=cnn_param_config['learning_rate']),
-                          loss=get_weighted_loss(class_weight_list, cnn_param_config['loss']),
-                          metrics=[tf.keras.metrics.AUC(multi_label=True), 'binary_accuracy', tf.keras.metrics.Precision(),
-                                   tf.keras.metrics.Recall()])
+            logger.info(f'Executing callback every {steps_execute} batches')
 
             model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
                 filepath=cnn_fname,
@@ -247,6 +243,12 @@ if __name__ == '__main__':
                 save_freq='epoch',
                 mode='min',
                 save_best_only=True)
+
+            model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=cnn_param_config['learning_rate']),
+                          steps_per_execution=steps_execute,
+                          loss=get_weighted_loss(class_weight_list, cnn_param_config['loss']),
+                          metrics=[tf.keras.metrics.AUC(multi_label=True), 'binary_accuracy', tf.keras.metrics.Precision(),
+                                   tf.keras.metrics.Recall()])
 
             #TODO: Find out how to get tensorboard to work in Windows
             #tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir='logs',
@@ -257,16 +259,86 @@ if __name__ == '__main__':
             #                         profile_batch=2,
             #                         embeddings_freq=1)
 
+            history_list = []
+
+            model.layers[2].trainable = True
+            #maximum number of layers in CNN model
+            cnn_layers_N = len(model.layers[2].layers)
+
+            if args.layer_train == -1:
+                layer_train = cnn_layers_N
+            else:
+                layer_train = args.layer_train
+
+            steps_per_epoch = num_batch // layer_train
+            layer_steps = cnn_layers_N // layer_train
+
+            for layer in model.layers[2].layers:
+                layer.trainable = False
+
+            # unfreeze each layer group one at a time for the 1st epoch
+            if not_transfer:
+                for l in range(layer_train):
+                    min_idx = l * layer_steps
+                    if l == layer_train - 1:
+                        max_idx = cnn_layers_N
+                    else:
+                        max_idx = (l + 1) * layer_steps
+
+                    for layer in model.layers[2].layers[::-1][min_idx: max_idx]:
+                        #unfreeze group of layers according the user argument
+                        layer.trainable = True
+
+                    model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=cnn_param_config['learning_rate']),
+                                  steps_per_execution=steps_execute,
+                                  loss=get_weighted_loss(class_weight_list, cnn_param_config['loss']),
+                                  metrics=[tf.keras.metrics.AUC(multi_label=True), 'binary_accuracy',
+                                           tf.keras.metrics.Precision(),
+                                           tf.keras.metrics.Recall()])
+
+                    if l == layer_train - 1:
+                        #perform validation test at the end of 1st epoch
+                        history = model.fit(tfds_train, batch_size=batch_size, epochs=1, validation_data=tfds_valid,
+                                            verbose=1, use_multiprocessing=True, workers=8, steps_per_epoch=steps_per_epoch)
+                    else:
+                        history = model.fit(tfds_train, batch_size=batch_size, epochs=1,
+                                            verbose=1, use_multiprocessing=True, workers=8, steps_per_epoch=steps_per_epoch)
+                        #reshuffle dataset
+                        df_train = df_train.sample(frac=1.0).reset_index(drop=True)
+                        tfds_train = tf.data.Dataset.from_tensor_slices((df_train[train_dataset._feature_header].values,
+                                                                         df_train['Path'].values,
+                                                                         df_train[return_labels].values))
+                        tfds_train = tfds_train.map(lambda x, y, z: tf_read_image(x, y, z, cnn_model=args.cnn_model,
+                                                                                  transformations=test_transformations),
+                                                    num_parallel_calls=tf.data.AUTOTUNE)
+                        tfds_train = tfds_train.batch(batch_size)
+                        tfds_train = tfds_train.prefetch(tf.data.AUTOTUNE)
+
+                    history_list.append(history.history)
+
+                epochs = args.epochs-1
+            else:
+                epochs = args.epochs
+
             #TODO: fix bug with class weight, not sure how to solve this
             #https://datascience.stackexchange.com/questions/41698/how-to-apply-class-weight-to-a-multi-output-model
 
-            history = model.fit(tfds_train, batch_size=batch_size, epochs=args.epochs, validation_data=tfds_valid,
+            #train again with all the weights unfreezed for the remaining epochs
+            model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=cnn_param_config['learning_rate']),
+                          steps_per_execution=steps_execute,
+                          loss=get_weighted_loss(class_weight_list, cnn_param_config['loss']),
+                          metrics=[tf.keras.metrics.AUC(multi_label=True), 'binary_accuracy', tf.keras.metrics.Precision(),
+                                   tf.keras.metrics.Recall()])
+
+            history = model.fit(tfds_train, batch_size=batch_size, epochs=epochs, validation_data=tfds_valid,
                                 verbose=1, use_multiprocessing=True, workers=8)
-                                #Disable callback every epoch
-                                #callbacks=[model_checkpoint_callback])
+            history_list.append(history.history)
+
             model.save(cnn_fname)
             logger.info(f'Saving training history to {cnn_history_fname}')
-            np.save(cnn_history_fname, history.history)
+            # np.save(cnn_history_fname, history.history)
+            np.save(cnn_history_fname, history_list)
+
         else:
             try:
                 cnn_pretrained_path = os.path.join(base_path, "models", args.cnn_pretrained)
@@ -390,9 +462,9 @@ if __name__ == '__main__':
         ax.set_xlabel("False Positive Rate", fontsize=8)
         ax.set_ylabel("True Positive Rate", fontsize=8)
         fig_fname = os.path.join(results_path,
-                                 f"{args.file}_{modelname}_{batch_size}_{args.map}_{label}_{f_datetime}.png")
+                                 f"{args.file}_{modelname}_{batch_size}_{steps_execute}_{args.map}_{label}_{f_datetime}.png")
         text_fname = os.path.join(results_path,
-                                  f"{args.file}_{modelname}_{batch_size}_{args.map}_{label}_{f_datetime}.txt")
+                                  f"{args.file}_{modelname}_{batch_size}_{steps_execute}_{args.map}_{label}_{f_datetime}.txt")
         f = open(text_fname, "w")
         fig.savefig(fig_fname, dpi=200)
         fig.clear()

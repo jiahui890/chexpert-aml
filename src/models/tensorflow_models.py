@@ -259,9 +259,9 @@ def MobileNetv2_keras(output_size,
                       feature_shape=(4,), 
                       image_shape=(320,320, 3)):
 
-    cnn_base = tf.keras.applications.mobilenet_v2.MobileNetV2(include_top=not_transfer,
+    cnn_base = tf.keras.applications.mobilenet_v2.MobileNetV2(include_top=False,
                                                               weights='imagenet')
-    cnn_base.trainable = not_transfer
+    cnn_base.trainable = False
     print(cnn_base.summary())
     
     #inputs
@@ -297,7 +297,8 @@ def MobileNetv2_pop1(output_size,
                       not_transfer=False, 
                       feature_shape=(4,), 
                       image_shape=(320,320,3)):
-    cnn_base = tf.keras.applications.mobilenet_v2.MobileNetV2(include_top=not_transfer,
+
+    cnn_base = tf.keras.applications.mobilenet_v2.MobileNetV2(include_top=False,
                                                               weights='imagenet')
     cnn_base.trainable = not_transfer
     
@@ -319,7 +320,7 @@ def MobileNetv2_pop1(output_size,
     inputs_feature = tf.keras.Input(shape=feature_shape)
     inputs_image = tf.keras.Input(shape=image_shape)
     
-    x1 = pop_model(inputs_image, training=False)
+    x1 = pop_model(inputs_image, training=not_transfer)
     x1 = tf.keras.layers.Conv2D.from_config(conv_1_config)(x1)
     x1 = tf.keras.layers.BatchNormalization.from_config(conv_1_bn_config)(x1)
     x1 = tf.keras.layers.ReLU.from_config(out_relu_config)(x1)
@@ -351,7 +352,7 @@ def MobileNetv2_pop2(output_size,
                       not_transfer=False, 
                       feature_shape=(4,), 
                       image_shape=(320,320,3)):
-    cnn_base = tf.keras.applications.mobilenet_v2.MobileNetV2(include_top=not_transfer,
+    cnn_base = tf.keras.applications.mobilenet_v2.MobileNetV2(include_top=False,
                                                               weights='imagenet')
     cnn_base.trainable = not_transfer
     
@@ -373,7 +374,7 @@ def MobileNetv2_pop2(output_size,
     inputs_feature = tf.keras.Input(shape=feature_shape)
     inputs_image = tf.keras.Input(shape=image_shape)
     
-    x1 = pop_model(inputs_image, training=False)
+    x1 = pop_model(inputs_image, training=not_transfer)
     x1 = tf.keras.layers.Conv2D.from_config(conv_1_config)(x1)
     x1 = tf.keras.layers.BatchNormalization.from_config(conv_1_bn_config)(x1)
     x1 = tf.keras.layers.ReLU.from_config(out_relu_config)(x1)
@@ -406,9 +407,9 @@ def DenseNet121_keras(output_size,
                       feature_shape=(4,), 
                       image_shape=(320,320, 3)):
 
-    cnn_base = tf.keras.applications.DenseNet121(include_top=not_transfer,
+    cnn_base = tf.keras.applications.DenseNet121(include_top=False,
                                                  weights='imagenet')
-    cnn_base.trainable = not_transfer
+    cnn_base.trainable = False
 
     #create 2 input layers, one for img and one for non-img
     inputs_feature = tf.keras.Input(shape=feature_shape)
@@ -445,7 +446,7 @@ def ResNet152_keras(output_size,
                     feature_shape=(4,), 
                     image_shape=(320,320, 3)):
 
-    cnn_base = tf.keras.applications.ResNet152(include_top=not_transfer,
+    cnn_base = tf.keras.applications.ResNet152(include_top=False,
                                                  weights='imagenet')
     cnn_base.trainable = not_transfer
 
